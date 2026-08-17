@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - claude/html-code-process-review-wcz8p4
   workflow_dispatch:
 
 permissions:
