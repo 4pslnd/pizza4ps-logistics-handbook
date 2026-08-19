@@ -1,0 +1,45 @@
+{
+  "processes": [
+    {
+      "process_id": "monthly-training-calendar",
+      "title": "Monthly Training Calendar Process",
+      "subtitle": "From collecting trainer schedules to publishing the finalized calendar.",
+      "status": "live",
+      "pillar": "logistics",
+      "createdBy": "learning@pizza4ps.com",
+      "lanes": ["TPM", "Intern", "EDL", "L&D Head", "Stakeholders"],
+      "owners": ["TPM", "Intern", "EDL", "L&D Head", "Stakeholders"],
+      "steps": [
+        {"id":"start","label":"Start","lane":"Intern","type":"start","next":["informStakeholders"],"task":"","timeline":"","files":[],"note":""},
+        {"id":"informStakeholders","label":"Inform Stakeholders to propose training calendar for the next month","lane":"Intern","type":"action","next":["inputOSKB","informe","discuss"],"task":"Intern reaches out to TPM, EDL Leader and other departments (QA, HSE, Beverage, Cafe, etc.) asking them to propose their training / activity schedule for the upcoming month.","timeline":"15th – 20th of each month","workingDays":2,"files":[],"note":"Priority order for finalizing the schedule: Mandatory Training > Training run by L&D > QA Training > Training from other departments."},
+        {"id":"discuss","label":"Discuss & Inform training calendar","lane":"Stakeholders","type":"action","next":["collect"],"task":"In response to the Intern's outreach, other departments (QA, HSE, Beverage, Cafe, etc.) share the extra context needed to complete the calendar.","timeline":"15th – 20th of each month","workingDays":1,"files":[],"note":"","stakeholderDetail":"QA, HSE, Beverage, Cafe, etc."},
+        {"id":"informe","label":"Inform e-learning launching","lane":"EDL","type":"action","next":["collect"],"task":"In response to the Intern's outreach, the EDL team shares information on any upcoming e-learning launch so it can be folded into the monthly calendar.","timeline":"15th – 20th of each month","workingDays":1,"files":[],"note":""},
+        {"id":"inputOSKB","label":"Input training calendar to OSKB","lane":"TPM","type":"action","next":["collect"],"task":"In response to the Intern's outreach, TPM & Trainers place the finalized class schedule directly on OSKB.","timeline":"15th – 20th of each month","workingDays":1,"files":[],"note":""},
+        {"id":"collect","label":"Collect training calendar from trainers","lane":"Intern","type":"action","next":["inputcal"],"task":"Confirming (1.1.2):\n- Food Safety Management class: QA finalizes the schedule based on L&D's suggestion in the group chat.\n- Classes run by L&D: TPM & Trainers fill in OSKB.\n- Classes run by other departments: confirmed via discussion.\n- E-learning info (if any): EDL team announces the finalized schedule.\n\nConfirmation message (1.1.3): send a message finalizing the schedule to the other L&D stakeholders.","timeline":"Confirming: 15th–20th · Confirmation message: 21st–22nd","workingDays":3,"files":[{"label":"2026 OSKB_Talent Development","url":""}],"note":"Consolidates the responses from TPM, EDL Leader and other departments above."},
+        {"id":"inputcal","label":"Input calendar to L&D Google Calendar","lane":"Intern","type":"action","next":["design","draft"],"task":"Input all finalized schedules into the L&D account's Google Calendar by filling in the automatic calendar-input file.","timeline":"15th – 22nd of each month","workingDays":2,"files":[{"label":"ILT Timeline","url":""}],"note":"Do not delete rows — only fill in the blue header columns in the '1.1 ILT Details' sheet. Do not adjust the other sheets."},
+        {"id":"design","label":"Design calendar on Canva","lane":"Intern","type":"action","next":["reviewTPM"],"task":"Pick a theme and finish the calendar design in Canva.","timeline":"22nd – 24th of each month","workingDays":2,"files":[{"label":"File canva thiết kế","url":""}],"note":"Choose a theme and style with global appeal — not Vietnam-only."},
+        {"id":"draft","label":"Draft communication content (for email & group chat)","lane":"Intern","type":"action","next":["reviewTPM"],"task":"Check with the relevant L&D team members on what each course needs to highlight, then write communication copy that fits the design theme.","timeline":"22nd – 24th of each month","workingDays":2,"files":[{"label":"References","url":""},{"label":"File nhập nội dung truyền thông","url":""}],"note":"Keep the tone youthful and concise — not overly formal — while still covering every important point."},
+        {"id":"reviewTPM","label":"Review","lane":"TPM","type":"decision","next":{"yes":"reviewEDL","no":"inputcal"},"task":"Send the design + copy to the L&D Staff group so TPM & Trainers can review and give feedback.","timeline":"24th – 26th of each month","workingDays":2,"files":[],"note":"Reviewers comment directly in the docs file and in Canva."},
+        {"id":"reviewEDL","label":"Review","lane":"EDL","type":"decision","next":{"yes":"reviewLD","no":"inputcal"},"task":"Send the design to the L&D | EDL group for the EDL team to review and give feedback.","timeline":"26th – 27th of each month","workingDays":1,"files":[],"note":"Reviewers comment directly in the docs file and in Canva."},
+        {"id":"reviewLD","label":"Review","lane":"L&D Head","type":"decision","next":{"yes":"send","no":"inputcal"},"task":"Send to the L&D Manager for final review before communication goes out.","timeline":"27th – 29th of each month","workingDays":2,"files":[],"note":"Reviewers comment directly in the docs file and in Canva."},
+        {"id":"send","label":"Send communication via email & group chat","lane":"Intern","type":"action","next":["update"],"task":"Send the finalized calendar by email using the 'Monthly Calendar' template, and post it to the group chats.","timeline":"27th – 31st of each month · latest by the 1st of the following month","workingDays":1,"files":[{"label":"'Monthly Calendar' email template","url":""}],"note":"If any training is happening abroad, also notify the relevant overseas AM/SRM/RM/ASM."},
+        {"id":"update","label":"Update calendar on Ops site","lane":"Intern","type":"action","next":["end"],"task":"Update the content that was emailed onto the Ops Google Site, following the existing template.","timeline":"","workingDays":1,"files":[{"label":"Monthly Training calendar Ops site","url":""},{"label":"File Nội dung calendar publish Google site","url":""}],"note":""},
+        {"id":"end","label":"End","lane":"Intern","type":"end","next":[],"task":"","timeline":"","files":[],"note":""}
+      ]
+    },
+    {
+      "process_id": "prize-cambodia",
+      "title": "Prize Sending (Partners — Cambodia)",
+      "subtitle": "Process for coordinating and shipping partner prizes to Cambodia.",
+      "status": "coming-soon",
+      "pillar": "logistics",
+      "createdBy": "learning@pizza4ps.com",
+      "lanes": ["Intern"],
+      "owners": ["TPM", "Intern", "EDL", "L&D Head", "Stakeholders"],
+      "steps": [
+        {"id":"start","label":"Start","lane":"Intern","type":"start","next":["end"],"task":"","timeline":"","files":[],"note":""},
+        {"id":"end","label":"End","lane":"Intern","type":"end","next":[],"task":"","timeline":"","files":[],"note":""}
+      ]
+    }
+  ]
+}
