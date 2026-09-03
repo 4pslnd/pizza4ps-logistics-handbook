@@ -1,0 +1,90 @@
+<script>
+/* Custom modal system — Artifacts run in a sandboxed iframe where the
+   browser's native prompt()/confirm()/alert() are silently suppressed
+   (they resolve immediately with no visible dialog). Every "ask the user"
+   moment in the editor must go through this instead. */
+(function (root) {
+  var host = null;
+  function ensure() {
+    if (host) return host;
+    host = document.createElement('div');
+    host.className = 'mm-host';
+    document.body.appendChild(host);
+    return host;
+  }
+  function close() { if (host) { host.innerHTML = ''; host.style.display = 'none'; } }
+
+  function base(titleText, bodyHTML, buttons) {
+    var h = ensure();
+    h.style.display = 'block';
+    h.innerHTML =
+      '<div class="mm-veil"></div>' +
+      '<div class="mm-box" role="dialog" aria-modal="true">' +
+        '<div class="mm-title">' + titleText + '</div>' +
+        '<div class="mm-body">' + bodyHTML + '</div>' +
+        '<div class="mm-actions"></div>' +
+      '</div>';
+    var actions = h.querySelector('.mm-actions');
+    buttons.forEach(function (b) {
+      var el = document.createElement('button');
+      el.type = 'button';
+      el.className = 'mk-btn' + (b.primary ? ' mk-btn--primary' : '') + (b.danger ? ' mk-btn--danger' : '');
+      el.textContent = b.label;
+      el.onclick = b.onClick;
+      actions.appendChild(el);
+    });
+    h.querySelector('.mm-veil').onclick = function () { close(); if (buttons.onVeil) buttons.onVeil(); };
+    return h;
+  }
+
+  function modalAlert(title, message, cb) {
+    base(title, '<p>' + message + '</p>', [
+      { label: 'OK', primary: true, onClick: function () { close(); if (cb) cb(); } }
+    ]);
+  }
+
+  function modalConfirm(title, message, onYes, opts) {
+    opts = opts || {};
+    base(title, '<p>' + message + '</p>', [
+      { label: opts.cancelLabel || 'Cancel', onClick: function () { close(); } },
+      { label: opts.okLabel || 'Yes', primary: !opts.danger, danger: opts.danger,
+        onClick: function () { close(); onYes(); } }
+    ]);
+  }
+
+  function modalPrompt(title, message, defaultValue, onSubmit) {
+    var h = base(title,
+      (message ? '<p>' + message + '</p>' : '') +
+      '<input type="text" class="mm-input" id="mmPromptInput" value="' +
+      String(defaultValue || '').replace(/"/g, '&quot;') + '">',
+      [
+        { label: 'Cancel', onClick: function () { close(); } },
+        { label: 'OK', primary: true, onClick: submit }
+      ]);
+    var input = h.querySelector('#mmPromptInput');
+    input.focus(); input.select();
+    input.addEventListener('keydown', function (e) { if (e.key === 'Enter') submit(); });
+    function submit() {
+      var v = input.value;
+      close();
+      onSubmit(v);
+    }
+  }
+
+  function modalChoice(title, message, options, onPick) {
+    var h = base(title, (message ? '<p>' + message + '</p>' : '') +
+      '<div class="mm-choices">' + options.map(function (o, i) {
+        return '<button type="button" class="mm-choice" data-i="' + i + '"' +
+          (o.dot ? ' style="--dot:' + o.dot + '"' : '') + '>' +
+          (o.dot ? '<i class="mm-choice__dot"></i>' : '') + o.label + '</button>';
+      }).join('') + '</div>', [
+        { label: 'Cancel', onClick: function () { close(); } }
+      ]);
+    h.querySelectorAll('.mm-choice').forEach(function (b) {
+      b.onclick = function () { var i = +b.getAttribute('data-i'); close(); onPick(options[i].value); };
+    });
+  }
+
+  root.Modal = { alert: modalAlert, confirm: modalConfirm, prompt: modalPrompt, choice: modalChoice };
+})(window);
+</script>

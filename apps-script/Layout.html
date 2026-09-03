@@ -1,0 +1,207 @@
+<script>
+/* ==========================================================================
+   Auto-layout — turns a step list into VERTICAL diagram geometry.
+   Lanes run left-to-right as columns; the flow runs top-to-bottom by depth.
+   Input:  steps [{id, lane, type, label, next, ...}], lanes [labels]
+   Output: {lanes:[{label,left,width}], nodes:[{...,x,y,w,h}],
+            connections:[{from,to,path,label,labelPos}], canvas:{width,height}}
+   Nobody hand-places anything; row comes from graph depth, column from lane.
+   ========================================================================== */
+(function (root) {
+
+  /* One consistent size and font per box, regardless of type, so labels
+     never look mismatched next to each other. */
+  var NODE_W = 210, NODE_H = 82, DEC_W = 146, DEC_H = 146;
+  var START_W = 168, START_H = 72;               // true ellipse: wide oval, not a stadium
+  var COL_GAP = 34, ROW_GAP = 52;
+  var LANE_PAD = 16, CANVAS_PAD = 30;
+  var BACK_GAP = 30;                             // spacing between stacked return channels
+
+  function nodeSize(type) {
+    if (type === 'decision') return { w: DEC_W, h: DEC_H };
+    if (type === 'start' || type === 'end') return { w: START_W, h: START_H };
+    return { w: NODE_W, h: NODE_H };
+  }
+
+  function outEdges(step) {
+    var n = step.next;
+    if (!n) return [];
+    if (Array.isArray(n)) return n.filter(Boolean).map(function (t) { return { to: t, label: null }; });
+    var e = [];
+    if (n.yes) e.push({ to: n.yes, label: 'Yes' });
+    if (n.no) e.push({ to: n.no, label: 'No' });
+    return e;
+  }
+
+  /* Back edges = anything that revisits a node still open on the DFS stack.
+     Those are the "No, go back and redo it" arrows; they must not push
+     a node further down or the whole diagram stretches without end. */
+  function findBackEdges(steps, byId, startId) {
+    var state = {}, back = {};
+    function visit(id) {
+      state[id] = 1;
+      outEdges(byId[id] || {}).forEach(function (e) {
+        if (!byId[e.to]) return;
+        if (state[e.to] === 1) back[id + '>' + e.to] = true;
+        else if (!state[e.to]) visit(e.to);
+      });
+      state[id] = 2;
+    }
+    if (byId[startId]) visit(startId);
+    steps.forEach(function (s) { if (!state[s.id]) visit(s.id); });
+    return back;
+  }
+
+  /* Row = longest forward path from start, so a node always sits below
+     everything feeding it. */
+  function assignDepth(steps, byId, back, startId) {
+    var depth = {}, indeg = {};
+    steps.forEach(function (s) { indeg[s.id] = 0; });
+    steps.forEach(function (s) {
+      outEdges(s).forEach(function (e) {
+        if (byId[e.to] && !back[s.id + '>' + e.to]) indeg[e.to]++;
+      });
+    });
+    var queue = steps.filter(function (s) { return indeg[s.id] === 0; }).map(function (s) { return s.id; });
+    if (!queue.length) queue = [startId];
+    queue.forEach(function (id) { depth[id] = 0; });
+    while (queue.length) {
+      var id = queue.shift();
+      outEdges(byId[id] || {}).forEach(function (e) {
+        if (!byId[e.to] || back[id + '>' + e.to]) return;
+        depth[e.to] = Math.max(depth[e.to] || 0, (depth[id] || 0) + 1);
+        if (--indeg[e.to] === 0) queue.push(e.to);
+      });
+    }
+    steps.forEach(function (s) { if (depth[s.id] == null) depth[s.id] = 0; });
+    return depth;
+  }
+
+  /* Flow order: the same depth-first pass layout() uses to assign rows,
+     exposed standalone so the Steps list can sort by "where a step sits in
+     the flow" instead of "when it was added". Parallel steps (same depth)
+     keep their original relative order, since there is no other signal to
+     break the tie with. */
+  function flowOrder(spec) {
+    var steps = spec.steps.slice();
+    var byId = {}; steps.forEach(function (s) { byId[s.id] = s; });
+    var startId = (steps.find(function (s) { return s.type === 'start'; }) || steps[0]).id;
+    var back = findBackEdges(steps, byId, startId);
+    var depth = assignDepth(steps, byId, back, startId);
+    return steps
+      .map(function (s, i) { return { s: s, d: depth[s.id], i: i }; })
+      .sort(function (a, b) { return a.d - b.d || a.i - b.i; })
+      .map(function (x) { return x.s; });
+  }
+
+  function layout(spec) {
+    var steps = spec.steps.slice();
+    var byId = {}; steps.forEach(function (s) { byId[s.id] = s; });
+    var startId = (steps.find(function (s) { return s.type === 'start'; }) || steps[0]).id;
+
+    var back = findBackEdges(steps, byId, startId);
+    var depth = assignDepth(steps, byId, back, startId);
+
+    var laneNames = spec.lanes.filter(function (L) {
+      return steps.some(function (s) { return s.lane === L; });
+    });
+    var laneIdx = {}; laneNames.forEach(function (L, i) { laneIdx[L] = i; });
+
+    /* Column width per lane: must fit however many steps in that lane land
+       on the same row (parallel siblings), side by side. */
+    var slotCount = {}, maxSlots = {}, laneNodeW = {};
+    steps.forEach(function (s) {
+      var k = s.lane + '@' + depth[s.id];
+      slotCount[k] = (slotCount[k] || 0) + 1;
+      maxSlots[s.lane] = Math.max(maxSlots[s.lane] || 1, slotCount[k]);
+      var w = nodeSize(s.type).w;
+      laneNodeW[s.lane] = Math.max(laneNodeW[s.lane] || 0, w);
+    });
+
+    var lanes = [], left = CANVAS_PAD;
+    laneNames.forEach(function (L) {
+      var slots = maxSlots[L] || 1, w = laneNodeW[L] || NODE_W;
+      var width = slots * w + (slots - 1) * COL_GAP + LANE_PAD * 2;
+      lanes.push({ label: L, left: left, width: width });
+      left += width;
+    });
+    var laneLeft = {}; lanes.forEach(function (l) { laneLeft[l.label] = l; });
+
+    /* Row height per depth: the tallest shape occupying that row, from any lane. */
+    var rowH = {};
+    steps.forEach(function (s) {
+      var h = nodeSize(s.type).h;
+      rowH[depth[s.id]] = Math.max(rowH[depth[s.id]] || 0, h);
+    });
+    var maxDepth = 0; steps.forEach(function (s) { maxDepth = Math.max(maxDepth, depth[s.id]); });
+    var rowTop = {}, top = CANVAS_PAD;
+    for (var d = 0; d <= maxDepth; d++) {
+      rowTop[d] = top;
+      top += (rowH[d] || NODE_H) + ROW_GAP;
+    }
+
+    var used = {};
+    var nodes = steps.map(function (s) {
+      var d = depth[s.id], k = s.lane + '@' + d;
+      var slot = used[k] = (used[k] == null ? 0 : used[k] + 1);
+      var lane = laneLeft[s.lane];
+      var size = nodeSize(s.type);
+      var slots = maxSlots[s.lane] || 1;
+      var rowWidth = slots * (laneNodeW[s.lane] || NODE_W) + (slots - 1) * COL_GAP;
+      var rowStart = lane.left + LANE_PAD + (lane.width - LANE_PAD * 2 - rowWidth) / 2;
+      var colX = rowStart + slot * ((laneNodeW[s.lane] || NODE_W) + COL_GAP);
+      return {
+        id: s.id, type: s.type, label: s.label, lane: s.lane, detail: s,
+        x: colX + ((laneNodeW[s.lane] || NODE_W) - size.w) / 2,
+        y: rowTop[d] + ((rowH[d] || NODE_H) - size.h) / 2,
+        w: size.w, h: size.h, depth: d
+      };
+    });
+    var pos = {}; nodes.forEach(function (n) { pos[n.id] = n; });
+
+    /* Connectors run top-to-bottom. Back edges (the "No" arrows that revisit
+       an earlier row) are routed through a reserved channel to the right of
+       every lane, since letting them cut back through the diagram itself is
+       what makes hand-drawn "No" loops unreadable. */
+    var conns = [];
+    var rightEdge = lanes.length ? lanes[lanes.length - 1].left + lanes[lanes.length - 1].width : CANVAS_PAD;
+    var backSeen = 0;
+    steps.forEach(function (s) {
+      var a = pos[s.id];
+      outEdges(s).forEach(function (e) {
+        var b = pos[e.to]; if (!a || !b) return;
+        var isBack = !!back[s.id + '>' + e.to] || b.depth <= a.depth;
+        var path, lp;
+        if (!isBack) {
+          var x1 = a.x + a.w / 2, y1 = a.y + a.h, x2 = b.x + b.w / 2, y2 = b.y;
+          var midY = y1 + Math.max(18, (y2 - y1) / 2);
+          path = (x1 === x2)
+            ? 'M' + x1 + ',' + y1 + ' L' + x2 + ',' + y2
+            : 'M' + x1 + ',' + y1 + ' L' + x1 + ',' + midY + ' L' + x2 + ',' + midY + ' L' + x2 + ',' + y2;
+          lp = { x: (x1 + x2) / 2 + 10, y: midY - 8 };
+        } else {
+          var sx = a.x + a.w, sy = a.y + a.h / 2;
+          var channelX = rightEdge + BACK_GAP + (backSeen++) * BACK_GAP;
+          var tx = b.x + b.w, ty = b.y + b.h / 2;
+          path = 'M' + sx + ',' + sy + ' L' + channelX + ',' + sy +
+                 ' L' + channelX + ',' + ty + ' L' + tx + ',' + ty;
+          lp = { x: channelX - 6, y: (sy + ty) / 2 - 8 };
+        }
+        conns.push({ from: s.id, to: e.to, path: path, label: e.label, labelPos: lp, back: isBack });
+      });
+    });
+
+    var backRows = conns.filter(function (c) { return c.back; }).length;
+    var width = rightEdge + BACK_GAP * (backRows + 1) + CANVAS_PAD;
+    var height = top - ROW_GAP + CANVAS_PAD;
+
+    return {
+      title: spec.title, subtitle: spec.subtitle,
+      lanes: lanes, nodes: nodes, connections: conns,
+      canvas: { width: width, height: height }
+    };
+  }
+
+  root.AutoLayout = { layout: layout, flowOrder: flowOrder };
+})(window);
+</script>
