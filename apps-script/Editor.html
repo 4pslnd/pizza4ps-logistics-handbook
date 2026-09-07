@@ -1037,17 +1037,12 @@ textarea{resize:vertical;min-height:60px;line-height:1.5}
       <span class="hb-topbar__subtitle">For L&amp;D internal use (E-learning &middot; Data &middot; Logistics &middot; Training)</span>
     </span></a>
   <div class="hb-role">
+    <span class="hb-role__who" id="whoami"></span>
     <div class="hb-bellwrap">
       <button class="hb-bell" id="bellBtn" aria-label="Notifications"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><span class="hb-bell__badge" id="bellBadge" hidden></span></button>
       <div class="hb-bellpanel" id="bellPanel" hidden></div>
     </div>
     <a href="#" class="hb-adminlink" id="adminLink" hidden>&#9881; Manage access</a>
-    <span id="demoSwitch" class="hb-demoswitch">
-      <span class="hb-role__demo">Demo</span>
-      <span class="hb-role__label">Viewing as</span>
-      <select id="roleSwitch" aria-label="Viewing as (demo)"></select>
-    </span>
-    <span class="hb-role__who" id="whoami"></span>
   </div>
 </div>
 <div class="hb-topbar hb-topbar--sub" style="padding-top:6px;padding-bottom:6px;min-height:0">
@@ -1621,8 +1616,7 @@ var MEMBERS = [
   { email: 'lnd.edl@pizza4ps.com',    name: 'EDL Team',   role: 'EDL',      admin: true,  pillars: {}, items: {} },
   { email: 'phuong.ntl@pizza4ps.com', name: 'Phuong',     role: 'TPM',      admin: false, pillars: { elearning: 'view', data: 'view', logistics: 'view', training: 'edit' }, items: {} },
   { email: 'hoa.doan@pizza4ps.com',   name: 'Hoa',        role: 'TPM',      admin: false, pillars: { elearning: 'view', data: 'view', logistics: 'view', training: 'edit' }, items: {} },
-  { email: 'hamy.nguyen@pizza4ps.com',name: 'Ha My',      role: 'Intern',   admin: false, pillars: { elearning: 'view', data: 'view', logistics: 'view', training: 'view' }, items: {} },
-  { email: 'khang.le@pizza4ps.com',   name: 'Khang (outside L&D)', role: 'No access', admin: false, pillars: { elearning: 'none', data: 'none', logistics: 'none', training: 'none' }, items: {} }
+  { email: 'hamy.nguyen@pizza4ps.com',name: 'Ha My',      role: 'Intern',   admin: false, pillars: { elearning: 'view', data: 'view', logistics: 'view', training: 'view' }, items: {} }
 ];
 var currentUser = MEMBERS[0];
 function memberByEmail(e) { for (var i = 0; i < MEMBERS.length; i++) if (MEMBERS[i].email === e) return MEMBERS[i]; return null; }
@@ -1684,9 +1678,10 @@ function pushHistory(p, summary) { p._history = p._history || []; p._history.uns
 function openHistory(p) {
   var h = p._history || [];
   if (!h.length) { Modal.alert('Edit history', 'No saved versions yet. Each Save / Publish adds a version here, so you can restore an earlier one.'); return; }
-  Modal.choice('Edit history — ' + esc(p.title), 'Pick a version to restore (' + h.length + ' saved, newest first).',
-    h.map(function (v, i) { return { label: fmtDate(v.at) + ' · ' + v.by + ' — ' + v.summary, value: String(i) }; }), function (idx) {
+  Modal.choice('Edit history — ' + esc(p.title), 'The top entry is the current version. Pick an earlier one to restore (' + h.length + ' saved, newest first).',
+    h.map(function (v, i) { return { label: fmtDate(v.at) + ' · ' + v.by + ' — ' + v.summary + (i === 0 ? '  ·  CURRENT' : ''), value: String(i) }; }), function (idx) {
       if (idx === null || idx === '') return; var v = h[+idx];
+      if (+idx === 0) { Modal.alert('Already current', 'That is the version currently shown — nothing to restore.'); return; }
       Modal.confirm('Restore this version?', 'From ' + fmtDate(v.at) + ' by ' + esc(v.by) + '. The current content will be replaced by this version.', function () {
         var snap = JSON.parse(v.snap); for (var k in snap) { p[k] = snap[k]; } render();
         Modal.alert('Restored', 'Restored the version from ' + fmtDate(v.at) + '. (mockup — publish it to make it live.)');
@@ -2046,7 +2041,7 @@ function itemCard(p) {
     '<p class="toc-card__desc">' + esc(p.subtitle || '') + '</p>' +
     '<div class="toc-card__meta toc-card__meta--row">' + meta + '</div>' +
     '<div class="toc-card__foot toc-card__foot--br">' +
-      '<span class="toc-card__pic">' + (p.pic ? esc(p.pic) : 'No PIC') + '</span>' +
+      '<span class="toc-card__pic">' + (p.pic ? 'PIC: ' + esc(p.pic) : 'No PIC') + '</span>' +
       '<span class="toc-card__date">' + (p.updatedAt ? 'Updated on ' + fmtDate(p.updatedAt) : '') + '</span>' +
     '</div></button>';
 }
@@ -2237,12 +2232,13 @@ function wireItemHeader(p) {
   var e = $('editProcBtn'); if (e) e.onclick = function () { openEditor(p.process_id); };
   var hb = $('histBtn'); if (hb) hb.onclick = function () { openHistory(p); };
   var a = $('approveBtn'); if (a) a.onclick = function () {
-    p.review = 'approved'; addNotif('approved', p); Modal.alert('Approved', 'You approved "' + esc(p.title) + '". ' + esc(p.pic || 'The PIC') + ' (or you) can now publish it.'); render(); };
+    p.review = 'approved'; addNotif('approved', p); notifyServer('Approved', p); Modal.alert('Approved', 'You approved "' + esc(p.title) + '". ' + esc(p.pic || 'The PIC') + ' (or you) can now publish it.'); render(); };
   var ap = $('approvePubBtn'); if (ap) ap.onclick = function () {
     Modal.confirm('Approve & publish?', 'This makes "' + esc(p.title) + '" live right now.', function () {
       p.review = 'approved'; p.status = 'live'; p.updatedAt = todayISO(); p.updatedBy = currentUser.email;
-      pushHistory(p, 'Approved & published'); addNotif('published', p);
-      Modal.alert('Published', '"' + esc(p.title) + '" is now live. (mockup — nothing was really saved)'); render(); }, { okLabel: 'Approve & publish' }); };
+      pushHistory(p, 'Approved & published'); addNotif('published', p); notifyServer('Approved & published', p);
+      if (typeof GAS_MODE !== 'undefined' && GAS_MODE) { try { google.script.run.saveData(DOC.processes, 'Approved & published: ' + p.title); } catch (e) {} }
+      Modal.alert('Published', '"' + esc(p.title) + '" is now live.'); render(); }, { okLabel: 'Approve & publish' }); };
 }
 function drawProcess(p) {
   var S = $('siteInner'); S.className = 'hb-shell hb-shell--wide pillar-' + (p.pillar || 'logistics');
@@ -2571,7 +2567,7 @@ function wireEditorChrome() {
     if (mode === 'pending' || mode === 'invalid') return;
     if (mode === 'send') {
       P.review = 'pending'; P.updatedAt = todayISO(); P.updatedBy = currentUser.email; dirty = false;
-      pushHistory(P, 'Sent for approval'); addNotif('pending', P);
+      pushHistory(P, 'Sent for approval'); addNotif('pending', P); notifyServer('Submitted for approval', P);
       Modal.alert('Sent for approval', 'Sent to <b>' + esc(P.reviewer) + '</b> to review. They’ll get a Google&nbsp;Chat notification (on the real site) and can Approve — or Approve &amp; publish — from this item’s page.');
       backFromEditor(); return;
     }
@@ -2586,7 +2582,7 @@ function wireEditorChrome() {
       function commit(realSaved) {
         $('pub').textContent = verb; dirty = false;
         pushHistory(P, m || (P.status === 'draft' ? 'Saved draft' : 'Published'));
-        if (live) addNotif('published', P);
+        if (live) { addNotif('published', P); notifyServer('Published', P); }
         updatePublishButton();
         var msg = P.status === 'draft' ? '✓ Saved as draft — only people who can edit it will see it.' : '✓ Published — this is now live on the website.';
         if ($('banner')) { $('banner').className = 'mk-banner mk-banner--ok';
@@ -2673,45 +2669,48 @@ function drawAdmin() {
         ROLES.filter(function (r) { return r !== 'Custom'; }).map(function (r) { return { label: r, value: r }; }), function (role) {
           if (!role) return;
           var nu = { email: email, name: (nm || email.split('@')[0]).trim(), role: role, admin: false, pillars: {}, items: {} };
-          applyRolePreset(nu, role); MEMBERS.push(nu); adminSel = email; wireRoleSwitch();
+          applyRolePreset(nu, role); MEMBERS.push(nu); adminSel = email; persistMembers(); wireRoleSwitch();
           Modal.alert('Member added', 'Added <b>' + esc(email) + '</b> as <b>' + esc(role) + '</b>. On the real site they get an email invite with the link, and access works as soon as they sign in with their @pizza4ps.com account.');
           drawAdmin();
         });
     });
   }); };
   var rm = $('admRemove'); if (rm) rm.onclick = function () { Modal.confirm('Remove member?', esc(m.email) + ' will lose all access.', function () {
-    MEMBERS = MEMBERS.filter(function (u) { return u.email !== m.email; }); adminSel = MEMBERS[0] && MEMBERS[0].email; wireRoleSwitch(); drawAdmin(); }, { danger: true, okLabel: 'Remove' }); };
-  var nmEl = $('admName'); if (nmEl) nmEl.onchange = function () { m.name = nmEl.value.trim() || m.name; wireRoleSwitch(); drawAdmin(); };
-  var roleEl = $('admRole'); if (roleEl) roleEl.onchange = function () { applyRolePreset(m, roleEl.value); wireRoleSwitch(); drawAdmin(); };
+    MEMBERS = MEMBERS.filter(function (u) { return u.email !== m.email; }); adminSel = MEMBERS[0] && MEMBERS[0].email; persistMembers(); wireRoleSwitch(); drawAdmin(); }, { danger: true, okLabel: 'Remove' }); };
+  var nmEl = $('admName'); if (nmEl) nmEl.onchange = function () { m.name = nmEl.value.trim() || m.name; persistMembers(); wireRoleSwitch(); drawAdmin(); };
+  var roleEl = $('admRole'); if (roleEl) roleEl.onchange = function () { applyRolePreset(m, roleEl.value); persistMembers(); wireRoleSwitch(); drawAdmin(); };
   S.querySelectorAll('[data-acc]').forEach(function (sel2) { sel2.onchange = function () {
     var a = sel2.getAttribute('data-acc'), v = sel2.value;
     if (a === 'exlvl') return;
     if (a.indexOf('pillar:') === 0) { m.pillars = m.pillars || {}; m.pillars[a.slice(7)] = v; m.role = 'Custom'; }
     else if (a.indexOf('item:') === 0) { m.items = m.items || {}; m.items[a.slice(5)] = v; m.role = 'Custom'; }
-    drawAdmin();
+    persistMembers(); drawAdmin();
   }; });
   var exAdd = $('excAdd'); if (exAdd) exAdd.onclick = function () {
     var it = $('excItem').value, lvSel = S.querySelector('[data-acc="exlvl"]'), lv = lvSel ? lvSel.value : 'view';
     if (!it) { Modal.alert('Pick an item', 'Choose a process or alignment to add an exception for.'); return; }
-    m.items = m.items || {}; m.items[it] = lv; m.role = 'Custom'; drawAdmin();
+    m.items = m.items || {}; m.items[it] = lv; m.role = 'Custom'; persistMembers(); drawAdmin();
   };
-  S.querySelectorAll('[data-exdel]').forEach(function (b) { b.onclick = function () { delete m.items[b.getAttribute('data-exdel')]; drawAdmin(); }; });
+  S.querySelectorAll('[data-exdel]').forEach(function (b) { b.onclick = function () { delete m.items[b.getAttribute('data-exdel')]; persistMembers(); drawAdmin(); }; });
 }
 
 /* ------------------------------ chrome: role, brand ------------------------------ */
 function wireRoleSwitch() {
-  var sw = $('roleSwitch');
-  sw.innerHTML = MEMBERS.map(function (u, i) { return '<option value="' + i + '"' + (u === currentUser ? ' selected' : '') + '>' + esc(u.name) + '</option>'; }).join('');
-  sw.value = String(Math.max(0, MEMBERS.indexOf(currentUser)));
-  sw.onchange = function () { currentUser = MEMBERS[+sw.value] || MEMBERS[0]; $('whoami').textContent = currentUser.email; updateAdminLink(); goHome(); };
-  $('whoami').textContent = currentUser.email;
-  /* On the real deployed page, the identity comes from Google sign-in — the
-     "Viewing as" preview switch is shown only to admins; everyone else just
-     sees their own name. In the Artifact mockup it stays visible for the demo. */
-  var demo = $('demoSwitch');
-  if (demo) demo.hidden = (typeof GAS_MODE !== 'undefined' && GAS_MODE && !isAdmin());
-  var lbl = $('demoSwitch'); /* relabel for GAS admins as a preview tool */
+  var who = $('whoami'); if (who) who.textContent = currentUser.email + (currentUser.role ? ' · ' + currentUser.role : '');
   updateAdminLink();
+}
+/* Persist the members/permissions table (deployed page only). */
+function persistMembers() {
+  if (typeof GAS_MODE === 'undefined' || !GAS_MODE) return;
+  try { google.script.run.withFailureHandler(function () {}).saveMembers(MEMBERS); } catch (e) {}
+}
+/* Send a Google Chat card (deployed page only). status = the action that happened. */
+function notifyServer(status, p) {
+  if (typeof GAS_MODE === 'undefined' || !GAS_MODE) return;
+  try {
+    google.script.run.withFailureHandler(function () {}).notify({
+      title: p.title, status: status, by: currentUser.email, date: fmtDate(todayISO()) });
+  } catch (e) {}
 }
 function updateAdminLink() { $('adminLink').hidden = !isAdmin(); }
 function wireBrand() {
@@ -2756,7 +2755,7 @@ function wireBell() {
 }
 /* seed a little history + a couple of notifications so the features aren't empty on first load */
 function seedActivity() {
-  DOC.processes.forEach(function (p) { p._history = [{ at: p.updatedAt, by: p.updatedBy || p.createdBy || '', summary: 'Current version', snap: snapshotOf(p) }]; });
+  DOC.processes.forEach(function (p) { if (!p._history) p._history = [{ at: p.updatedAt, by: p.updatedBy || p.createdBy || '', summary: 'Initial version', snap: snapshotOf(p) }]; });
   var fs = DOC.processes.filter(function (p) { return p.process_id === 'food-safety-mgmt'; })[0];
   if (fs) { fs.review = 'pending'; fs.reviewer = 'yen.tran@pizza4ps.com'; }
   function seedN(type, id, by, at) { var p = DOC.processes.filter(function (x) { return x.process_id === id; })[0];
@@ -2801,7 +2800,7 @@ if (typeof GAS_MODE === 'undefined' || !GAS_MODE) bootApp();
 
 <script>
 (function(){
-  function boot(res){ if(res && res.ok && res.data && res.data.processes) DOC = res.data;
+  function boot(res){ if(res && res.ok){ if(res.data && res.data.processes) DOC = res.data; if(res.members && res.members.length) MEMBERS = res.members; }
     try { bootApp(); } catch(e){ var s=document.getElementById("siteInner"); if(s) s.innerHTML="<div style=\"padding:40px\">Load error: "+(e&&e.message)+"</div>"; } }
   google.script.run.withSuccessHandler(boot).withFailureHandler(function(e){
     var s=document.getElementById("siteInner"); if(s) s.innerHTML="<div style=\"padding:40px\">Could not load data: "+(e&&e.message)+"</div>"; try{bootApp();}catch(_){}

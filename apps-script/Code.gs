@@ -1,40 +1,115 @@
 /**
  * EDL Internal Handbook — Apps Script backend (UI review build)
  *
- * Serves the handbook to members of a Google Group and stores all
- * process / alignment content in a Google Sheet. Permissions, approval,
- * edit-history and the notification bell run in the page for this review
- * build; publishing content is persisted here.
+ * Content (processes + alignments) and the members/permissions table both live
+ * in a Google Sheet. Who can OPEN the page is decided by the Members table
+ * (managed inside the app), so you can grant access to someone even if they are
+ * not in the Google Group. Approval / edit-history / the bell run in the page
+ * for this review build.
  *
- * Script properties (Project Settings -> Script properties):
+ * Script properties:
  *   SHEET_ID       id of the Google Sheet datastore (from its URL)
- *   EDITOR_GROUP   learning@pizza4ps.com   (who may open the page)
- *   EXTRA_EDITORS  optional, comma-separated extra emails
- *   CHAT_WEBHOOK   optional, a Google Chat incoming-webhook URL for notifications
+ *   EDITOR_GROUP   learning@pizza4ps.com   (optional fallback: anyone in this group may open too)
+ *   CHAT_WEBHOOK   optional Google Chat incoming-webhook URL for notifications
  */
 var P = PropertiesService.getScriptProperties();
 function prop(k, d) { var v = P.getProperty(k); return (v === null || v === '') ? d : v; }
-function cfg() {
-  return { sheetId: prop('SHEET_ID', ''), group: prop('EDITOR_GROUP', 'learning@pizza4ps.com'),
-           extra: prop('EXTRA_EDITORS', ''), chat: prop('CHAT_WEBHOOK', '') };
-}
+function cfg() { return { sheetId: prop('SHEET_ID', ''), group: prop('EDITOR_GROUP', 'learning@pizza4ps.com'), chat: prop('CHAT_WEBHOOK', '') }; }
 function currentEmail() { return (Session.getActiveUser().getEmail() || '').toLowerCase(); }
-function isMember(email) {
-  if (!email) return false;
-  var c = cfg();
-  var extra = c.extra.split(',').map(function (s) { return s.trim().toLowerCase(); }).filter(Boolean);
-  if (extra.indexOf(email) >= 0) return true;
-  try { return GroupsApp.getGroupByEmail(c.group).hasUser(email); } catch (err) { return false; }
+function inGroup(email) { try { return GroupsApp.getGroupByEmail(cfg().group).hasUser(email); } catch (e) { return false; } }
+
+var MEMBERS_DEFAULT = [
+  {
+    "email": "nguyen.che@pizza4ps.com",
+    "name": "Che (owner)",
+    "role": "L&D Head",
+    "admin": true,
+    "pillars": {},
+    "items": {}
+  },
+  {
+    "email": "yen.tran@pizza4ps.com",
+    "name": "Yen Tran",
+    "role": "L&D Head",
+    "admin": true,
+    "pillars": {},
+    "items": {}
+  },
+  {
+    "email": "lnd.edl@pizza4ps.com",
+    "name": "EDL Team",
+    "role": "EDL",
+    "admin": true,
+    "pillars": {},
+    "items": {}
+  },
+  {
+    "email": "phuong.ntl@pizza4ps.com",
+    "name": "Phuong",
+    "role": "TPM",
+    "admin": false,
+    "pillars": {
+      "elearning": "view",
+      "data": "view",
+      "logistics": "view",
+      "training": "edit"
+    },
+    "items": {}
+  },
+  {
+    "email": "hoa.doan@pizza4ps.com",
+    "name": "Hoa",
+    "role": "TPM",
+    "admin": false,
+    "pillars": {
+      "elearning": "view",
+      "data": "view",
+      "logistics": "view",
+      "training": "edit"
+    },
+    "items": {}
+  },
+  {
+    "email": "hamy.nguyen@pizza4ps.com",
+    "name": "Ha My",
+    "role": "Intern",
+    "admin": false,
+    "pillars": {
+      "elearning": "view",
+      "data": "view",
+      "logistics": "view",
+      "training": "view"
+    },
+    "items": {}
+  }
+];
+
+function sheetFile_() { var c = cfg(); if (!c.sheetId) throw new Error('SHEET_ID is not set in the script properties.'); return SpreadsheetApp.openById(c.sheetId); }
+function tab_(name, header) {
+  var ss = sheetFile_(), sh = ss.getSheetByName(name);
+  if (!sh) { sh = ss.insertSheet(name); if (header) { sh.appendRow(header); sh.setFrozenRows(1); } else { sh.getRange(1, 1).setValue('⚠ System data — edit in the Handbook, not here.'); sh.getRange(2, 1).setValue(''); } }
+  return sh;
 }
+function dataSheet_() { return tab_('Data'); }
+function membersSheet_() { return tab_('Members'); }
+function historySheet_() { return tab_('History', ['Date change', 'Change detail']); }
+
+function getMembers() {
+  try { var raw = membersSheet_().getRange(2, 1).getValue(); var arr = raw ? JSON.parse(raw) : null; return (arr && arr.length) ? arr : MEMBERS_DEFAULT; }
+  catch (e) { return MEMBERS_DEFAULT; }
+}
+function memberOf(email) { var ms = getMembers(); for (var i = 0; i < ms.length; i++) if ((ms[i].email || '').toLowerCase() === email) return ms[i]; return null; }
+function isAllowed(email) { if (!email) return false; if (memberOf(email)) return true; return inGroup(email); }
+function isAdminEmail(email) { var m = memberOf(email); if (m && m.admin) return true; return inGroup(email); }
+
 function doGet(e) {
   var email = currentEmail();
-  if (!isMember(email)) {
+  if (!isAllowed(email)) {
     return HtmlService.createHtmlOutput(
-      '<div style="font:15px/1.6 Arial;padding:44px;max-width:560px;margin:auto;color:#24264A">' +
-      '<h2 style="margin:0 0 10px">No access</h2>' +
-      '<p>You are signed in as <b>' + (email || 'an unknown account') + '</b>.</p>' +
-      '<p>The EDL Internal Handbook is limited to members of <b>' + cfg().group +
-      '</b>. Ask the L&amp;D team to add you, then reload this page.</p></div>').setTitle('No access');
+      '<div style="font:15px/1.6 Arial;padding:44px;max-width:560px;margin:auto;color:#24264A;text-align:center">' +
+      '<div style="font-size:40px">🔒</div><h2 style="margin:6px 0 10px">No access yet</h2>' +
+      '<p>You are signed in as <b>' + (email || 'an unknown account') + '</b>, but you don’t have access to the EDL Internal Handbook yet.</p>' +
+      '<p>Please contact the L&amp;D Team at <b>lnd@pizza4ps.com</b> if you need support.</p></div>').setTitle('No access');
   }
   var t = HtmlService.createTemplateFromFile('Editor');
   t.userEmail = email;
@@ -43,73 +118,70 @@ function doGet(e) {
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 function include(name) { return HtmlService.createHtmlOutputFromFile(name).getContent(); }
-function sheetFile_() { var c = cfg(); if (!c.sheetId) throw new Error('SHEET_ID is not set in the script properties.'); return SpreadsheetApp.openById(c.sheetId); }
-function dataSheet_() {
-  var ss = sheetFile_(), sh = ss.getSheetByName('Data');
-  if (!sh) { sh = ss.insertSheet('Data'); sh.getRange(1, 1).setValue('⚠ System data — do not edit by hand. Use the Handbook editor instead.'); sh.getRange(2, 1).setValue(''); }
-  return sh;
-}
-function historySheet_() {
-  var ss = sheetFile_(), sh = ss.getSheetByName('History');
-  if (!sh) { sh = ss.insertSheet('History'); sh.appendRow(['Date change', 'Change detail']); sh.setFrozenRows(1); }
-  return sh;
-}
-/** Current published content. */
+
+/** Content + members + who you are. */
 function loadData() {
   var email = currentEmail();
-  if (!isMember(email)) throw new Error('Not authorized.');
-  try {
-    var raw = dataSheet_().getRange(2, 1).getValue();
-    return { ok: true, data: raw ? JSON.parse(raw) : { processes: [] }, userEmail: email };
-  } catch (err) { return { ok: false, error: String(err.message || err) }; }
+  if (!isAllowed(email)) throw new Error('Not authorized.');
+  var data; try { var raw = dataSheet_().getRange(2, 1).getValue(); data = raw ? JSON.parse(raw) : { processes: [] }; } catch (e) { data = { processes: [] }; }
+  return { ok: true, data: data, members: getMembers(), userEmail: email };
 }
-/** Server-side re-check of the browser's rules (processes only; alignments are documents). */
 function validateDoc(doc) {
   var errs = [];
   if (!doc || !doc.processes) return ['There is nothing to save.'];
   doc.processes.forEach(function (p) {
     if (!p.process_id) errs.push('An item has no id.');
     if (!p.pillar) errs.push('"' + (p.title || p.process_id) + '" has no pillar.');
-    if (p.kind === 'alignment') return;  /* documents have no flowchart to validate */
-    var ids = {}; (p.steps || []).forEach(function (s) { ids[s.id] = 1; });
+    if (p.kind === 'alignment') return;
     var starts = (p.steps || []).filter(function (s) { return s.type === 'start'; });
     var ends = (p.steps || []).filter(function (s) { return s.type === 'end'; });
     if (starts.length !== 1) errs.push('"' + (p.title || p.process_id) + '" must have exactly one Start step.');
     if (ends.length !== 1) errs.push('"' + (p.title || p.process_id) + '" must have exactly one End step.');
-    (p.steps || []).forEach(function (s) {
-      if (!s.label) errs.push('A step in "' + (p.title || p.process_id) + '" has no name.');
-      if (!s.lane && s.type !== 'start' && s.type !== 'end') errs.push('Step "' + (s.label || s.id) + '" has nobody assigned.');
-    });
+    (p.steps || []).forEach(function (s) { if (!s.label) errs.push('A step in "' + (p.title || p.process_id) + '" has no name.'); });
   });
   return errs;
 }
-/** Writes the whole content doc back, logs the change, and (optionally) pings Google Chat. */
+/** Save the whole content doc + log the change. */
 function saveData(processes, message) {
   var email = currentEmail();
-  if (!isMember(email)) return { ok: false, errors: ['Not authorized.'] };
+  if (!isAllowed(email)) return { ok: false, errors: ['Not authorized.'] };
   var doc = { processes: processes || [] };
-  var errs = validateDoc(doc);
-  if (errs.length) return { ok: false, errors: errs };
+  var errs = validateDoc(doc); if (errs.length) return { ok: false, errors: errs };
   var lock = LockService.getScriptLock();
-  try { lock.waitLock(10000); } catch (e) { return { ok: false, errors: ['Someone else is saving right now — please try again in a moment.'] }; }
+  try { lock.waitLock(10000); } catch (e) { return { ok: false, errors: ['Someone else is saving right now — please try again.'] }; }
   try {
     dataSheet_().getRange(2, 1).setValue(JSON.stringify(doc, null, 2));
     historySheet_().appendRow([new Date(), (message || 'Update') + ' — ' + email]);
-    notifyChat('*EDL Handbook* updated by ' + email + (message ? ': ' + message : ''));
     return { ok: true };
   } catch (err) { return { ok: false, errors: [String(err.message || err)] }; }
   finally { lock.releaseLock(); }
 }
-function notifyChat(text) {
-  var url = cfg().chat; if (!url) return;
-  try { UrlFetchApp.fetch(url, { method: 'post', contentType: 'application/json', payload: JSON.stringify({ text: text }), muteHttpExceptions: true }); } catch (e) {}
+/** Save the members / permissions table (admins only). */
+function saveMembers(members) {
+  var email = currentEmail();
+  if (!isAdminEmail(email)) return { ok: false, errors: ['Only admins can change access.'] };
+  try { membersSheet_().getRange(2, 1).setValue(JSON.stringify(members || [], null, 2)); return { ok: true }; }
+  catch (err) { return { ok: false, errors: [String(err.message || err)] }; }
 }
-function whoami() { return { email: currentEmail(), isMember: isMember(currentEmail()), group: cfg().group }; }
-/** One-time: load the demo content so the review page isn't empty. Safe to re-run. */
+/** Post a Google Chat card. evt = {title, status, by, date}. */
+function notify(evt) {
+  var url = cfg().chat; if (!url || !evt) return { ok: true };
+  var card = { cardsV2: [{ cardId: 'edl', card: {
+    header: { title: String(evt.title || 'Document'), subtitle: 'EDL Internal Handbook' },
+    sections: [{ widgets: [
+      { decoratedText: { startIcon: { knownIcon: 'BOOKMARK' }, topLabel: 'Status', text: String(evt.status || '') } },
+      { decoratedText: { startIcon: { knownIcon: 'PERSON' }, topLabel: 'By', text: String(evt.by || '') } },
+      { decoratedText: { startIcon: { knownIcon: 'CLOCK' }, topLabel: 'Date', text: String(evt.date || '') } }
+    ] }]
+  } }] };
+  try { UrlFetchApp.fetch(url, { method: 'post', contentType: 'application/json', payload: JSON.stringify(card), muteHttpExceptions: true }); } catch (e) {}
+  return { ok: true };
+}
+function whoami() { return { email: currentEmail(), allowed: isAllowed(currentEmail()), admin: isAdminEmail(currentEmail()) }; }
+
+/** One-time: load demo content + the starting members list. Safe to re-run. */
 function seedInitialData() {
-  var sh = dataSheet_();
-  if (sh.getRange(2, 1).getValue()) { Logger.log('Data already present — not overwriting.'); return; }
-  var seed = {
+  var d = dataSheet_(); if (!d.getRange(2, 1).getValue()) d.getRange(2, 1).setValue(JSON.stringify({
   "processes": [
     {
       "process_id": "monthly-training-calendar",
@@ -419,7 +491,7 @@ function seedInitialData() {
         "Stakeholders"
       ],
       "pillar": "logistics",
-      "createdBy": "learning@pizza4ps.com",
+      "createdBy": "nguyen.che@pizza4ps.com",
       "kind": "process",
       "pic": "phuong.ntl@pizza4ps.com",
       "updatedAt": "2026-08-20",
@@ -494,7 +566,7 @@ function seedInitialData() {
         "Stakeholders"
       ],
       "pillar": "logistics",
-      "createdBy": "learning@pizza4ps.com",
+      "createdBy": "nguyen.che@pizza4ps.com",
       "kind": "process",
       "pic": "hoa.doan@pizza4ps.com",
       "updatedAt": "2026-08-14",
@@ -529,7 +601,7 @@ function seedInitialData() {
       "updatedBy": "lnd.edl@pizza4ps.com",
       "reviewer": "",
       "review": "none",
-      "createdBy": "learning@pizza4ps.com",
+      "createdBy": "nguyen.che@pizza4ps.com",
       "lanes": [
         "Intern",
         "EDL"
@@ -627,7 +699,7 @@ function seedInitialData() {
       "updatedBy": "lnd.edl@pizza4ps.com",
       "reviewer": "",
       "review": "none",
-      "createdBy": "learning@pizza4ps.com",
+      "createdBy": "nguyen.che@pizza4ps.com",
       "lanes": [
         "Intern",
         "EDL"
@@ -725,7 +797,7 @@ function seedInitialData() {
       "updatedBy": "hoa.doan@pizza4ps.com",
       "reviewer": "",
       "review": "none",
-      "createdBy": "learning@pizza4ps.com",
+      "createdBy": "nguyen.che@pizza4ps.com",
       "lanes": [
         "TPM",
         "L&D Head"
@@ -808,7 +880,7 @@ function seedInitialData() {
       "updatedBy": "phuong.ntl@pizza4ps.com",
       "reviewer": "",
       "review": "none",
-      "createdBy": "learning@pizza4ps.com",
+      "createdBy": "nguyen.che@pizza4ps.com",
       "lanes": [
         "Intern",
         "TPM"
@@ -880,7 +952,7 @@ function seedInitialData() {
       ]
     }
   ]
-};
-  sh.getRange(2, 1).setValue(JSON.stringify(seed, null, 2));
-  Logger.log('Seed data written. Reload the web app.');
+}, null, 2));
+  var m = membersSheet_(); if (!m.getRange(2, 1).getValue()) m.getRange(2, 1).setValue(JSON.stringify(MEMBERS_DEFAULT, null, 2));
+  Logger.log('Seed done. Reload the web app.');
 }
