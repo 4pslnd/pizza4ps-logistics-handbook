@@ -92,7 +92,7 @@ function tab_(name, header) {
 }
 function dataSheet_() { return tab_('Data'); }
 function membersSheet_() { return tab_('Members'); }
-function historySheet_() { return tab_('History', ['Date change', 'Change detail']); }
+function historySheet_() { return tab_('History', ['Timestamp', 'Email', 'Message']); }
 
 function getMembers() {
   try { var raw = membersSheet_().getRange(2, 1).getValue(); var arr = raw ? JSON.parse(raw) : null; return (arr && arr.length) ? arr : MEMBERS_DEFAULT; }
@@ -148,10 +148,23 @@ function saveData(processes, message) {
   var doc = { processes: processes || [] };
   var errs = validateDoc(doc); if (errs.length) return { ok: false, errors: errs };
   var lock = LockService.getScriptLock();
-  try { lock.waitLock(10000); } catch (e) { return { ok: false, errors: ['Someone else is saving right now — please try again.'] }; }
+  try { lock.waitLock(10000); } catch (e) { return { ok: false, errors: ['Someone else is saving right now — please try again in a moment.'] }; }
   try {
-    dataSheet_().getRange(2, 1).setValue(JSON.stringify(doc, null, 2));
-    historySheet_().appendRow([new Date(), (message || 'Update') + ' — ' + email]);
+    // Safety net: never let an empty document overwrite existing content
+    // (e.g. a page that failed to load then tried to save). Deleting the last
+    // item must go through an explicit path, not a blank save.
+    var curRaw = dataSheet_().getRange(2, 1).getValue();
+    var curCount = 0; try { var cur = curRaw ? JSON.parse(curRaw) : null; curCount = (cur && cur.processes) ? cur.processes.length : 0; } catch (e) { curCount = 0; }
+    if (doc.processes.length === 0 && curCount > 0) {
+      return { ok: false, errors: ['Nothing to save — the page has no content loaded. Please reload before saving so existing items are not overwritten.'] };
+    }
+    var json = JSON.stringify(doc, null, 2);
+    // A single Sheet cell holds at most 50,000 characters. Warn before silently failing.
+    if (json.length > 48000) {
+      return { ok: false, errors: ['This content is too large to store in one cell (' + json.length + ' / 50000 characters). This usually means images were pasted directly into an alignment. Please attach images as links instead, or ask IT to enable per-item storage.'] };
+    }
+    dataSheet_().getRange(2, 1).setValue(json);
+    historySheet_().appendRow([new Date(), email, (message || 'Update')]);
     return { ok: true };
   } catch (err) { return { ok: false, errors: [String(err.message || err)] }; }
   finally { lock.releaseLock(); }

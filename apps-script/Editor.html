@@ -1714,6 +1714,19 @@ function opt(list, cur) { return '<option value="">— select —</option>' + li
   return '<option value="' + o.id + '"' + (o.id === cur ? ' selected' : '') + '>' + esc(nameOf(o)) + '</option>'; }).join(''); }
 function markDirty() { dirty = true; updatePublishButton(); }
 function saveVerb() { return (P && P.status === 'draft') ? 'Save draft' : 'Publish'; }
+/* Turn a failed save result into readable text. */
+function errText(r) { return (r && r.errors && r.errors.length) ? r.errors.map(esc).join('<br>') : 'Please try again.'; }
+/* The one and only path that writes content to the server. Every state change
+   (save, send-for-approval, approve, approve & publish) goes through here so a
+   failed write is never reported as success. onDone(ok, result). */
+function persist(message, onDone) {
+  if (typeof GAS_MODE !== 'undefined' && GAS_MODE) {
+    google.script.run
+      .withSuccessHandler(function (r) { onDone(!!(r && r.ok), r); })
+      .withFailureHandler(function (e) { onDone(false, { errors: [String(e && e.message || e)] }); })
+      .saveData(DOC.processes, message);
+  } else { setTimeout(function () { onDone(true, { ok: true, mock: true }); }, 300); }
+}
 /* Decide what the primary editor button does right now, given draft/review state. */
 function editorState() {
   if (!P) return { label: 'Publish', disabled: true, mode: 'save' };
@@ -2232,13 +2245,22 @@ function wireItemHeader(p) {
   var e = $('editProcBtn'); if (e) e.onclick = function () { openEditor(p.process_id); };
   var hb = $('histBtn'); if (hb) hb.onclick = function () { openHistory(p); };
   var a = $('approveBtn'); if (a) a.onclick = function () {
-    p.review = 'approved'; addNotif('approved', p); notifyServer('Approved', p); Modal.alert('Approved', 'You approved "' + esc(p.title) + '". ' + esc(p.pic || 'The PIC') + ' (or you) can now publish it.'); render(); };
+    var prev = p.review; p.review = 'approved'; a.disabled = true;
+    persist('Approved: ' + p.title, function (ok, r) {
+      a.disabled = false;
+      if (!ok) { p.review = prev; Modal.alert('Save failed', errText(r)); return; }
+      addNotif('approved', p); notifyServer('Approved', p);
+      Modal.alert('Approved', 'You approved "' + esc(p.title) + '". ' + esc(p.pic || 'The PIC') + ' (or you) can now publish it.'); render(); }); };
   var ap = $('approvePubBtn'); if (ap) ap.onclick = function () {
     Modal.confirm('Approve & publish?', 'This makes "' + esc(p.title) + '" live right now.', function () {
+      var pr = p.review, ps = p.status, pu = p.updatedAt, pb = p.updatedBy;
       p.review = 'approved'; p.status = 'live'; p.updatedAt = todayISO(); p.updatedBy = currentUser.email;
-      pushHistory(p, 'Approved & published'); addNotif('published', p); notifyServer('Approved & published', p);
-      if (typeof GAS_MODE !== 'undefined' && GAS_MODE) { try { google.script.run.saveData(DOC.processes, 'Approved & published: ' + p.title); } catch (e) {} }
-      Modal.alert('Published', '"' + esc(p.title) + '" is now live.'); render(); }, { okLabel: 'Approve & publish' }); };
+      ap.disabled = true;
+      persist('Approved & published: ' + p.title, function (ok, r) {
+        ap.disabled = false;
+        if (!ok) { p.review = pr; p.status = ps; p.updatedAt = pu; p.updatedBy = pb; Modal.alert('Publish failed', errText(r)); return; }
+        pushHistory(p, 'Approved & published'); addNotif('published', p); notifyServer('Approved & published', p);
+        Modal.alert('Published', '"' + esc(p.title) + '" is now live.'); render(); }); }, { okLabel: 'Approve & publish' }); };
 }
 function drawProcess(p) {
   var S = $('siteInner'); S.className = 'hb-shell hb-shell--wide pillar-' + (p.pillar || 'logistics');
@@ -2566,10 +2588,18 @@ function wireEditorChrome() {
     var mode = $('pub').getAttribute('data-mode');
     if (mode === 'pending' || mode === 'invalid') return;
     if (mode === 'send') {
-      P.review = 'pending'; P.updatedAt = todayISO(); P.updatedBy = currentUser.email; dirty = false;
-      pushHistory(P, 'Sent for approval'); addNotif('pending', P); notifyServer('Submitted for approval', P);
-      Modal.alert('Sent for approval', 'Sent to <b>' + esc(P.reviewer) + '</b> to review. They’ll get a Google&nbsp;Chat notification (on the real site) and can Approve — or Approve &amp; publish — from this item’s page.');
-      backFromEditor(); return;
+      var pr = P.review, pu = P.updatedAt, pb = P.updatedBy;
+      P.review = 'pending'; P.updatedAt = todayISO(); P.updatedBy = currentUser.email;
+      $('pub').disabled = true; $('pub').textContent = 'Sending…';
+      persist('Sent for approval: ' + P.title, function (ok, r) {
+        $('pub').disabled = false; updatePublishButton();
+        if (!ok) { P.review = pr; P.updatedAt = pu; P.updatedBy = pb; Modal.alert('Could not send', errText(r)); return; }
+        dirty = false;
+        pushHistory(P, 'Sent for approval'); addNotif('pending', P); notifyServer('Submitted for approval', P);
+        Modal.alert('Sent for approval', 'Sent to <b>' + esc(P.reviewer) + '</b> to review. They’ll get a Google&nbsp;Chat notification (on the real site) and can Approve — or Approve &amp; publish — from this item’s page.');
+        backFromEditor();
+      });
+      return;
     }
     if (kindOf(P) === 'process') { var e = validate(); if (e.length) { Modal.alert('Fix these first', e.map(esc).join('<br>')); return; } }
     var verb = saveVerb();
@@ -2589,12 +2619,10 @@ function wireEditorChrome() {
           $('banner').innerHTML = msg + (realSaved ? '' : ' <span style="opacity:.7;font-weight:400">(mockup — nothing was really saved)</span>'); }
         if (kindOf(P) === 'alignment') Modal.alert(P.status === 'draft' ? 'Saved as draft' : 'Published', msg);
       }
-      if (typeof GAS_MODE !== 'undefined' && GAS_MODE) {
-        google.script.run
-          .withSuccessHandler(function (r) { if (r && r.ok) commit(true); else { $('pub').textContent = verb; updatePublishButton(); Modal.alert('Save failed', (r && r.errors) ? r.errors.map(esc).join('<br>') : 'Please try again.'); } })
-          .withFailureHandler(function (e) { $('pub').textContent = verb; updatePublishButton(); Modal.alert('Save failed', esc(String(e && e.message || e))); })
-          .saveData(DOC.processes, m);
-      } else setTimeout(function () { commit(false); }, 500);
+      persist(m, function (ok, r) {
+        if (ok) commit(!(r && r.mock));
+        else { $('pub').textContent = verb; updatePublishButton(); Modal.alert('Save failed', errText(r)); }
+      });
     });
   };
 }
