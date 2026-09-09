@@ -188,16 +188,18 @@ label{display:block;font-size:12px;font-weight:600;color:var(--faint);margin:0 0
     if(!window.supabase||!window.supabase.createClient){ show('gateLogin',true); toast('Chưa tải được thư viện (cần mạng)',true); return; }
     if(!cfg||!cfg.url||!cfg.key){ show('gateLogin',true); $('cfg').hidden=false; return; }
     db=window.supabase.createClient(cfg.url,cfg.key,{auth:{persistSession:true,detectSessionInUrl:true,autoRefreshToken:true}});
-    db.auth.getSession().then(function(res){
-      var session=res.data && res.data.session;
-      if(!session){ show('gateLogin',true); return; }
-      myEmail=(session.user && session.user.email||'').toLowerCase();
+    // getUser() hỏi thẳng máy chủ nên luôn có email chuẩn (getSession đôi khi thiếu)
+    db.auth.getUser().then(function(res){
+      var user=res.data && res.data.user;
+      if(res.error || !user){ show('gateLogin',true); return; }
+      var um=user.user_metadata||{};
+      myEmail=(user.email||um.email||'').toLowerCase();
       // ai đang đăng nhập? RLS + whoami quyết định quyền
       db.rpc('whoami').then(function(r){
         if(r.error){ // whoami có thể trả lỗi nếu chưa chạy SQL setup
-          show('gateNoAccess',true); $('naEmail').textContent=myEmail+' (lỗi: '+r.error.message+')'; return; }
+          show('gateNoAccess',true); $('naEmail').textContent=(myEmail||'(không đọc được email)')+' — lỗi: '+r.error.message; return; }
         me=r.data;
-        if(!me){ $('naEmail').textContent=myEmail; show('gateNoAccess',true); return; }
+        if(!me){ $('naEmail').textContent=myEmail||'(không đọc được email)'; show('gateNoAccess',true); return; }
         enterApp();
       });
     });
