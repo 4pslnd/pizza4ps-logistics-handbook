@@ -87,11 +87,12 @@ label{display:block;font-size:12px;font-weight:600;color:var(--faint);margin:0 0
   <div class="gate__box">
     <div class="pennant"></div>
     <h1>EDL Internal Handbook</h1>
-    <p>Trang nội bộ Pizza 4P's. Vui lòng đăng nhập bằng tài khoản công ty để tiếp tục.</p>
-    <button class="gbtn" id="googleBtn">
-      <svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.6 2.6 30.1 0 24 0 14.6 0 6.4 5.4 2.5 13.3l7.8 6.1C12.2 13.6 17.6 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.5 3-2.2 5.5-4.7 7.2l7.3 5.7c4.3-4 6.8-9.9 6.8-17.4z"/><path fill="#FBBC05" d="M10.3 28.6c-.5-1.5-.8-3-.8-4.6s.3-3.1.8-4.6l-7.8-6.1C.9 16.5 0 20.1 0 24s.9 7.5 2.5 10.7l7.8-6.1z"/><path fill="#34A853" d="M24 48c6.1 0 11.3-2 15-5.5l-7.3-5.7c-2 1.4-4.6 2.2-7.7 2.2-6.4 0-11.8-4.1-13.7-9.9l-7.8 6.1C6.4 42.6 14.6 48 24 48z"/></svg>
-      Đăng nhập với Google
-    </button>
+    <p>Trang nội bộ Pizza 4P's. Nhập email công ty để nhận link đăng nhập.</p>
+    <div id="loginForm">
+      <input id="loginEmail" type="email" autocomplete="email" placeholder="ban@pizza4ps.com" style="max-width:320px;margin:0 auto 12px;text-align:center">
+      <div><button class="gbtn" id="emailBtn">Gửi link đăng nhập</button></div>
+    </div>
+    <p id="loginSent" hidden style="color:var(--teal);font-weight:600;margin-top:8px">✓ Đã gửi! Mở email và bấm vào link để đăng nhập (kiểm tra cả mục Spam).</p>
     <p style="margin-top:22px;font-size:12px"><a href="#" id="cfgLink" style="color:var(--navy-2)">Cấu hình kết nối Supabase</a></p>
   </div>
 </div>
@@ -206,8 +207,17 @@ label{display:block;font-size:12px;font-weight:600;color:var(--faint);margin:0 0
     $('whoEmail').textContent=myEmail; $('whoRole').textContent=(me&&me.role)||'';
     loadList().then(function(){}).catch(function(e){toast('Lỗi tải: '+(e.message||e),true);});
   }
-  function signIn(){ if(!db){toast('Chưa cấu hình Supabase',true);$('cfg').hidden=false;return;}
-    db.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.href.split('#')[0]}}); }
+  function sendMagic(){
+    var email=($('loginEmail').value||'').trim().toLowerCase();
+    if(!email){toast('Nhập email đã nhé',true);return;}
+    if(!db){toast('Chưa cấu hình Supabase',true);$('cfg').hidden=false;return;}
+    $('emailBtn').disabled=true;$('emailBtn').textContent='Đang gửi…';
+    db.auth.signInWithOtp({email:email,options:{emailRedirectTo:location.href.split('#')[0]}}).then(function(res){
+      $('emailBtn').disabled=false;$('emailBtn').textContent='Gửi link đăng nhập';
+      if(res.error){toast('Lỗi: '+res.error.message,true);return;}
+      $('loginForm').hidden=true;$('loginSent').hidden=false;
+    });
+  }
   function signOut(){ if(db) db.auth.signOut().then(function(){location.reload();}); else location.reload(); }
 
   // ---------- data ----------
@@ -269,7 +279,8 @@ label{display:block;font-size:12px;font-weight:600;color:var(--faint);margin:0 0
   }
 
   // ---------- wire ----------
-  $('googleBtn').onclick=signIn;
+  $('emailBtn').onclick=sendMagic;
+  $('loginEmail').addEventListener('keydown',function(e){if(e.key==='Enter')sendMagic();});
   $('signout').onclick=signOut; $('naSignout').onclick=signOut;
   $('cfgLink').onclick=function(e){e.preventDefault();$('cfg').hidden=false;};
   $('cfgCancel').onclick=function(){$('cfg').hidden=true;};
