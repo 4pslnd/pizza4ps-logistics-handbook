@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EDL Handbook</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --ground:#F5F4F0;--panel:#fff;--panel-2:#FBFAF7;--ink:#1B2233;--soft:#4A5268;--faint:#7A8199;
+  --line:#E4E2DA;--line-2:#D2CFC4;--navy:#242F52;--navy-2:#3A4675;--ghost:#EDEEF4;
+  --teal:#1F6F6B;--teal-ghost:#E4F0EE;--amber:#9A6414;--amber-g:#FBF1DC;--red:#B23A3A;
+  --live:#1F6F6B;--live-g:#E4F0EE;--draft:#9A6414;--draft-g:#FBF1DC;--arch:#6B7280;--arch-g:#ECEEF1;
+}
+@media(prefers-color-scheme:dark){:root{
+  --ground:#12151F;--panel:#1A1E2B;--panel-2:#20263a;--ink:#E9EAF0;--soft:#B4BACB;--faint:#7E869C;
+  --line:#2C3244;--line-2:#3A4258;--navy:#AEB8E0;--navy-2:#8B97C8;--ghost:#222945;
+  --teal:#6FD0C6;--teal-ghost:#183531;--amber:#E6B457;--amber-g:#332813;--red:#E58A8A;
+  --live:#6FD0C6;--live-g:#183531;--draft:#E6B457;--draft-g:#332813;--arch:#9AA3B2;--arch-g:#242A38;
+}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:15px;line-height:1.5}
+h1,h2,h3{font-family:"Spectral",Georgia,serif;margin:0}
+button{font-family:inherit;cursor:pointer}
+input,select,textarea{font-family:inherit;font-size:14px;color:var(--ink);background:var(--panel);border:1px solid var(--line-2);border-radius:8px;padding:8px 10px;width:100%}
+textarea{resize:vertical;min-height:120px;line-height:1.55}
+label{display:block;font-size:12px;font-weight:600;color:var(--faint);margin:0 0 4px}
+.field{margin-bottom:12px}
+.btn{border:1px solid var(--line-2);background:var(--panel);color:var(--ink);border-radius:8px;padding:8px 14px;font-weight:600;font-size:13.5px}
+.btn--primary{background:var(--navy);color:#fff;border-color:var(--navy)}
+.btn--ghost{background:transparent}
+.btn:active{transform:translateY(1px)}
+.btn:disabled{opacity:.5;cursor:default}
+.pennant{width:30px;height:24px;background:var(--navy);clip-path:polygon(0 0,100% 0,100% 60%,50% 100%,0 60%);border-radius:3px}
+
+.top{display:flex;align-items:center;gap:14px;padding:12px 20px;background:var(--panel);border-bottom:2px solid var(--navy);flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px}
+.brand b{font-family:"Spectral",serif;font-size:17px}
+.brand span{font-size:11px;color:var(--faint);display:block;margin-top:-2px}
+.who{margin-left:auto;font-size:12.5px;color:var(--soft);display:flex;align-items:center;gap:10px}
+.who .role{font-family:"IBM Plex Mono",monospace;font-size:11px;background:var(--ghost);color:var(--navy);padding:2px 8px;border-radius:999px}
+
+.app{display:grid;grid-template-columns:340px 1fr;height:calc(100vh - 51px)}
+@media(max-width:760px){.app{grid-template-columns:1fr;height:auto}}
+.side{border-right:1px solid var(--line);background:var(--panel-2);overflow-y:auto;padding:14px}
+.main{overflow-y:auto;padding:22px 26px}
+.side__tools{display:flex;gap:8px;margin-bottom:10px}.side__tools input{flex:1}
+.filters{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.chip{font-size:12px;padding:4px 10px;border-radius:999px;border:1px solid var(--line-2);background:var(--panel);color:var(--soft)}
+.chip.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.grp{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin:14px 2px 6px}
+.item{padding:9px 11px;border:1px solid var(--line);border-radius:9px;background:var(--panel);margin-bottom:7px;cursor:pointer}
+.item:hover{border-color:var(--navy)}.item.sel{border-color:var(--navy);box-shadow:inset 3px 0 0 var(--navy)}
+.item__t{font-weight:600;font-size:14px;display:flex;align-items:center;gap:6px}
+.item__m{font-size:11.5px;color:var(--faint);margin-top:2px}
+.kindtag{font-size:10.5px;color:var(--navy-2);border:1px solid var(--line-2);border-radius:5px;padding:0 5px}
+.st{font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:999px;text-transform:uppercase}
+.st--live{background:var(--live-g);color:var(--live)}.st--draft{background:var(--draft-g);color:var(--draft)}.st--archived{background:var(--arch-g);color:var(--arch)}
+.ed__head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px;flex-wrap:wrap}
+.ed__head h2{font-size:22px}.ed__actions{display:flex;gap:8px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.hint{font-size:12.5px;color:var(--faint);margin:2px 0 16px}
+.empty{color:var(--faint);text-align:center;margin-top:80px}.empty .pennant{margin:0 auto 14px;opacity:.4;width:44px;height:35px}
+
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);opacity:0;background:var(--navy);color:#fff;padding:11px 20px;border-radius:10px;font-size:14px;font-weight:500;transition:.25s;pointer-events:none;z-index:50}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}.toast--bad{background:var(--red)}
+.veil{position:fixed;inset:0;background:rgba(10,14,25,.55);display:flex;align-items:center;justify-content:center;padding:20px;z-index:40}
+.card{background:var(--panel);border-radius:14px;max-width:520px;width:100%;padding:26px;max-height:88vh;overflow-y:auto;border:1px solid var(--line)}
+.card h2{font-size:21px;margin-bottom:4px}.card p{color:var(--soft);font-size:13.5px;margin:6px 0 16px}
+.vrow{border:1px solid var(--line);border-radius:9px;padding:10px 12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.vrow__m{font-size:12px;color:var(--faint)}
+/* full-screen gates */
+.gate{position:fixed;inset:0;background:var(--ground);display:flex;align-items:center;justify-content:center;padding:24px;z-index:60}
+.gate__box{text-align:center;max-width:420px}
+.gate__box .pennant{width:52px;height:42px;margin:0 auto 18px}
+.gate h1{font-size:26px;margin-bottom:6px}.gate p{color:var(--soft);margin:8px 0 20px}
+.gbtn{display:inline-flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line-2);border-radius:10px;padding:11px 20px;font-weight:600;font-size:15px;color:var(--ink)}
+.gbtn svg{width:18px;height:18px}
+</style>
+</head>
+<body>
+
+<!-- LOGIN GATE -->
+<div class="gate" id="gateLogin" hidden>
+  <div class="gate__box">
+    <div class="pennant"></div>
+    <h1>EDL Internal Handbook</h1>
+    <p>Trang nội bộ Pizza 4P's. Vui lòng đăng nhập bằng tài khoản công ty để tiếp tục.</p>
+    <button class="gbtn" id="googleBtn">
+      <svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.6 2.6 30.1 0 24 0 14.6 0 6.4 5.4 2.5 13.3l7.8 6.1C12.2 13.6 17.6 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.5 3-2.2 5.5-4.7 7.2l7.3 5.7c4.3-4 6.8-9.9 6.8-17.4z"/><path fill="#FBBC05" d="M10.3 28.6c-.5-1.5-.8-3-.8-4.6s.3-3.1.8-4.6l-7.8-6.1C.9 16.5 0 20.1 0 24s.9 7.5 2.5 10.7l7.8-6.1z"/><path fill="#34A853" d="M24 48c6.1 0 11.3-2 15-5.5l-7.3-5.7c-2 1.4-4.6 2.2-7.7 2.2-6.4 0-11.8-4.1-13.7-9.9l-7.8 6.1C6.4 42.6 14.6 48 24 48z"/></svg>
+      Đăng nhập với Google
+    </button>
+    <p style="margin-top:22px;font-size:12px"><a href="#" id="cfgLink" style="color:var(--navy-2)">Cấu hình kết nối Supabase</a></p>
+  </div>
+</div>
+
+<!-- NO ACCESS GATE -->
+<div class="gate" id="gateNoAccess" hidden>
+  <div class="gate__box">
+    <div class="pennant" style="opacity:.5"></div>
+    <h1>Chưa có quyền truy cập</h1>
+    <p>Bạn đang đăng nhập bằng <b id="naEmail"></b>, nhưng tài khoản này chưa được cấp quyền vào EDL Internal Handbook.</p>
+    <p>Vui lòng liên hệ L&amp;D Team tại <b>lnd@pizza4ps.com</b> để được hỗ trợ.</p>
+    <button class="btn" id="naSignout">Đăng xuất</button>
+  </div>
+</div>
+
+<!-- MAIN APP (hidden until authorized) -->
+<div id="appRoot" hidden>
+  <div class="top">
+    <div class="brand"><div class="pennant"></div><div><b>EDL Handbook</b><span>For L&amp;D internal use</span></div></div>
+    <div class="who"><span id="whoEmail"></span><span class="role" id="whoRole"></span>
+      <button class="btn btn--ghost" id="signout" style="padding:4px 10px;font-size:12px">Đăng xuất</button></div>
+  </div>
+  <div class="app">
+    <aside class="side">
+      <div class="side__tools"><input id="search" placeholder="Tìm tài liệu…"><button class="btn btn--primary" id="newBtn">+ Mới</button></div>
+      <div class="filters" id="filters">
+        <button class="chip on" data-f="all">Tất cả</button><button class="chip" data-f="live">Live</button>
+        <button class="chip" data-f="draft">Draft</button><button class="chip" data-f="archived">Archived</button>
+      </div>
+      <div id="list"></div>
+    </aside>
+    <main class="main">
+      <div id="editor" hidden>
+        <div class="ed__head"><h2 id="edTitle">—</h2>
+          <div class="ed__actions"><button class="btn btn--ghost" id="histBtn">↻ Lịch sử</button><button class="btn btn--primary" id="saveBtn">Lưu</button></div>
+        </div>
+        <p class="hint" id="edMeta"></p>
+        <div class="field"><label>Tiêu đề</label><input id="fTitle"></div>
+        <div class="field"><label>Mô tả ngắn</label><input id="fSub"></div>
+        <div class="row2">
+          <div class="field"><label>Pillar</label><select id="fPillar"><option value="elearning">E-learning</option><option value="data">Data</option><option value="logistics">Logistics</option><option value="training">Training</option></select></div>
+          <div class="field"><label>Loại</label><select id="fKind"><option value="process">Process</option><option value="alignment">Alignment</option></select></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>Trạng thái</label><select id="fStatus"><option value="draft">Draft</option><option value="live">Live</option><option value="archived">Archived</option></select></div>
+          <div class="field"><label>PIC (email)</label><input id="fPic"></div>
+        </div>
+        <div class="field"><label>Nội dung</label><textarea id="fBody" placeholder="Mô tả quy trình / nội dung alignment…"></textarea></div>
+      </div>
+      <div class="empty" id="emptyState"><div class="pennant"></div><p>Chọn một tài liệu bên trái, hoặc bấm <b>+ Mới</b>.</p></div>
+    </main>
+  </div>
+</div>
+
+<!-- config overlay -->
+<div class="veil" id="cfg" hidden><div class="card">
+  <h2>Kết nối Supabase</h2><p>Dán từ Supabase → Project Settings → API. Lưu trên trình duyệt này.</p>
+  <div class="field"><label>Project URL</label><input id="cfgUrl" placeholder="https://xxxx.supabase.co"></div>
+  <div class="field"><label>anon public key</label><input id="cfgKey" placeholder="eyJhbGci..."></div>
+  <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn btn--ghost" id="cfgCancel">Đóng</button><button class="btn btn--primary" id="cfgSave">Lưu &amp; tải lại</button></div>
+</div></div>
+
+<!-- history overlay -->
+<div class="veil" id="hist" hidden><div class="card">
+  <h2>Lịch sử phiên bản</h2><p id="histFor"></p><div id="histList"></div>
+  <div style="text-align:right;margin-top:10px"><button class="btn btn--ghost" id="histClose">Đóng</button></div>
+</div></div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+(function(){
+  var LS='edl-handbook-conn';
+  // Kết nối mặc định (anon key để lộ vẫn an toàn — RLS bảo vệ dữ liệu)
+  var DEFAULT_URL='https://gwavhbebglgkeihyvsou.supabase.co';
+  var DEFAULT_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3YXZoYmViZ2xna2VpaHl2c291Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg5MzEzMTcsImV4cCI6MjEwNDUwNzMxN30.0LsDw1aakQZ1XLcQ5oTS4KQNNmKFtDwPWtl8u4RGrfM';
+  var db=null, me=null, myEmail='', docs=[], current=null, isNew=false, filter='all', q='';
+  var PILLAR={elearning:'E-learning',data:'Data',logistics:'Logistics',training:'Training'};
+  var $=function(id){return document.getElementById(id);};
+  function show(id,on){$(id).hidden=!on;}
+  function toast(m,bad){var t=$('toast');t.textContent=m;t.className='toast show'+(bad?' toast--bad':'');setTimeout(function(){t.className='toast';},2600);}
+  function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function slug(s){return (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/đ/g,'d').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,50)||('doc-'+Date.now());}
+  function fmt(d){try{return new Date(d).toLocaleString('vi-VN');}catch(e){return d;}}
+  function loadCfg(){try{var c=JSON.parse(localStorage.getItem(LS)||'null');if(c&&c.url&&c.key)return c;}catch(e){}
+    if(DEFAULT_URL&&DEFAULT_KEY)return {url:DEFAULT_URL,key:DEFAULT_KEY}; return null;}
+  function saveCfg(c){try{localStorage.setItem(LS,JSON.stringify(c));}catch(e){}}
+
+  // ---------- boot / auth ----------
+  function boot(){
+    var cfg=loadCfg();
+    if(!window.supabase||!window.supabase.createClient){ show('gateLogin',true); toast('Chưa tải được thư viện (cần mạng)',true); return; }
+    if(!cfg||!cfg.url||!cfg.key){ show('gateLogin',true); $('cfg').hidden=false; return; }
+    db=window.supabase.createClient(cfg.url,cfg.key,{auth:{persistSession:true,detectSessionInUrl:true,autoRefreshToken:true}});
+    db.auth.getSession().then(function(res){
+      var session=res.data && res.data.session;
+      if(!session){ show('gateLogin',true); return; }
+      myEmail=(session.user && session.user.email||'').toLowerCase();
+      // ai đang đăng nhập? RLS + whoami quyết định quyền
+      db.rpc('whoami').then(function(r){
+        if(r.error){ // whoami có thể trả lỗi nếu chưa chạy SQL setup
+          show('gateNoAccess',true); $('naEmail').textContent=myEmail+' (lỗi: '+r.error.message+')'; return; }
+        me=r.data;
+        if(!me){ $('naEmail').textContent=myEmail; show('gateNoAccess',true); return; }
+        enterApp();
+      });
+    });
+  }
+  function enterApp(){
+    show('gateLogin',false); show('gateNoAccess',false); show('appRoot',true);
+    $('whoEmail').textContent=myEmail; $('whoRole').textContent=(me&&me.role)||'';
+    loadList().then(function(){}).catch(function(e){toast('Lỗi tải: '+(e.message||e),true);});
+  }
+  function signIn(){ if(!db){toast('Chưa cấu hình Supabase',true);$('cfg').hidden=false;return;}
+    db.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.href.split('#')[0]}}); }
+  function signOut(){ if(db) db.auth.signOut().then(function(){location.reload();}); else location.reload(); }
+
+  // ---------- data ----------
+  function loadList(){
+    return db.from('documents').select('*').order('pillar').order('title').then(function(res){
+      if(res.error) throw res.error; docs=res.data||[]; renderList(); return docs; });
+  }
+  function renderList(){
+    var box=$('list'), html='', byP={};
+    docs.filter(function(d){ if(filter!=='all'&&d.status!==filter) return false;
+      if(q&&(d.title+' '+(d.subtitle||'')).toLowerCase().indexOf(q)<0) return false; return true; })
+      .forEach(function(d){(byP[d.pillar]=byP[d.pillar]||[]).push(d);});
+    Object.keys(PILLAR).forEach(function(pk){var arr=byP[pk]; if(!arr||!arr.length) return;
+      html+='<div class="grp">'+PILLAR[pk]+'</div>';
+      arr.forEach(function(d){ html+='<div class="item'+(current&&current.id===d.id?' sel':'')+'" data-id="'+d.id+'">'+
+        '<div class="item__t">'+esc(d.title)+' <span class="kindtag">'+d.kind+'</span></div>'+
+        '<div class="item__m"><span class="st st--'+d.status+'">'+d.status+'</span> · PIC: '+esc(d.pic||'—')+'</div></div>'; });
+    });
+    box.innerHTML=html||'<p class="hint" style="padding:10px">Chưa có tài liệu nào.</p>';
+    box.querySelectorAll('.item').forEach(function(el){el.onclick=function(){open(el.getAttribute('data-id'));};});
+  }
+  function showEditor(on){$('editor').hidden=!on;$('emptyState').hidden=on;}
+  function open(id){current=docs.filter(function(d){return d.id===id;})[0]; if(!current) return; isNew=false; fill(current); renderList(); showEditor(true);}
+  function fill(d){
+    $('edTitle').textContent=d.title||'(chưa đặt tên)';
+    $('edMeta').textContent=(d.process_id?('mã: '+d.process_id+'  ·  '):'')+(d.updated_at?('cập nhật '+fmt(d.updated_at)):'')+(d.updated_by?(' bởi '+d.updated_by):'');
+    $('fTitle').value=d.title||'';$('fSub').value=d.subtitle||'';$('fPillar').value=d.pillar||'elearning';
+    $('fKind').value=d.kind||'process';$('fStatus').value=d.status||'draft';$('fPic').value=d.pic||'';
+    var data=d.data||{}; $('fBody').value=data.body||data.note||'';
+  }
+  function newDoc(){isNew=true;current=null;renderList();showEditor(true);
+    fill({title:'',subtitle:'',pillar:'elearning',kind:'process',status:'draft',pic:myEmail,data:{}});
+    $('edTitle').textContent='Tài liệu mới';$('edMeta').textContent='sẽ tạo khi bấm Lưu';$('fTitle').focus();}
+  function collect(){var kind=$('fKind').value,body=$('fBody').value;
+    var data=kind==='alignment'?{body:body}:{note:body};
+    var row={kind:kind,pillar:$('fPillar').value,title:$('fTitle').value.trim(),subtitle:$('fSub').value.trim(),
+      status:$('fStatus').value,pic:$('fPic').value.trim(),data:data,updated_by:myEmail};
+    if(isNew){row.process_id=slug(row.title);row.created_by=myEmail;} else {row.process_id=current.process_id;row.id=current.id;}
+    return row;}
+  function save(){ if(!db){toast('Chưa kết nối',true);return;}
+    var row=collect(); if(!row.title){toast('Nhập tiêu đề đã nhé',true);return;}
+    $('saveBtn').disabled=true;$('saveBtn').textContent='Đang lưu…';
+    db.from('documents').upsert(row,{onConflict:'process_id'}).select().single().then(function(res){
+      if(res.error) throw res.error; var saved=res.data;
+      return db.from('document_versions').insert({document_id:saved.id,snapshot:saved,message:(isNew?'Tạo mới':'Cập nhật'),changed_by:myEmail}).then(function(){return saved;});
+    }).then(function(saved){$('saveBtn').disabled=false;$('saveBtn').textContent='Lưu';
+      toast(isNew?'✓ Đã tạo':'✓ Đã lưu — chỉ ghi đúng dòng này');isNew=false;
+      return loadList().then(function(){open(saved.id);});
+    }).catch(function(e){$('saveBtn').disabled=false;$('saveBtn').textContent='Lưu';toast('Lưu lỗi: '+(e.message||e),true);});
+  }
+  function history(){ if(!current){toast('Chọn một tài liệu đã lưu',true);return;}
+    $('histFor').textContent='“'+current.title+'”';$('histList').innerHTML='<p class="hint">Đang tải…</p>';$('hist').hidden=false;
+    db.from('document_versions').select('*').eq('document_id',current.id).order('changed_at',{ascending:false}).then(function(res){
+      if(res.error){$('histList').innerHTML='<p class="hint">Lỗi: '+esc(res.error.message)+'</p>';return;}
+      var rows=res.data||[];
+      $('histList').innerHTML=rows.length?rows.map(function(v,i){return '<div class="vrow"><div><b>'+(i===0?'Hiện tại':esc(v.message||'Phiên bản'))+'</b><div class="vrow__m">'+fmt(v.changed_at)+' · '+esc(v.changed_by||'')+'</div></div>'+(i===0?'':'<button class="btn" data-restore="'+v.id+'">Khôi phục</button>')+'</div>';}).join(''):'<p class="hint">Chưa có phiên bản.</p>';
+      $('histList').querySelectorAll('[data-restore]').forEach(function(b){b.onclick=function(){var v=rows.filter(function(x){return String(x.id)===b.getAttribute('data-restore');})[0];if(v){fill(Object.assign({},current,v.snapshot));$('hist').hidden=true;toast('Đã nạp bản cũ — bấm Lưu để áp dụng');}};});
+    });
+  }
+
+  // ---------- wire ----------
+  $('googleBtn').onclick=signIn;
+  $('signout').onclick=signOut; $('naSignout').onclick=signOut;
+  $('cfgLink').onclick=function(e){e.preventDefault();$('cfg').hidden=false;};
+  $('cfgCancel').onclick=function(){$('cfg').hidden=true;};
+  $('cfgSave').onclick=function(){var url=$('cfgUrl').value.trim(),key=$('cfgKey').value.trim();
+    if(!url||!key){toast('Nhập cả URL và key',true);return;} saveCfg({url:url,key:key});location.reload();};
+  $('newBtn').onclick=newDoc; $('saveBtn').onclick=save; $('histBtn').onclick=history; $('histClose').onclick=function(){$('hist').hidden=true;};
+  $('search').oninput=function(){q=this.value.toLowerCase().trim();renderList();};
+  $('filters').querySelectorAll('.chip').forEach(function(c){c.onclick=function(){$('filters').querySelectorAll('.chip').forEach(function(x){x.classList.remove('on');});c.classList.add('on');filter=c.getAttribute('data-f');renderList();};});
+  var c=loadCfg(); if(c){$('cfgUrl').value=c.url||'';$('cfgKey').value=c.key||'';}
+  boot();
+})();
+</script>
+</body>
+</html>
