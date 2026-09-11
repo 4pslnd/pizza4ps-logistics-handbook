@@ -3191,11 +3191,14 @@ function bootApp() {
   if (typeof CURRENT_USER !== 'undefined' && CURRENT_USER) {
     var me = memberByEmail(CURRENT_USER);
     if (!me) {
-      /* On the deployed review page anyone who passes the L&D group gate opens
-         as an admin (they can preview other roles via the switcher); in the
-         standalone mockup an unknown identity is treated as No access. */
-      var gas = (typeof GAS_MODE !== 'undefined' && GAS_MODE);
-      me = { email: CURRENT_USER, name: CURRENT_USER.split('@')[0], role: gas ? 'L&D Head' : 'No access', admin: gas, pillars: {}, items: {} };
+      /* Admin is NEVER assumed. The signed-in account's real record comes from
+         the server (whoami → window.__WHOAMI), whose `admin` flag is the single
+         source of truth; only that shows Manage access. If we have no record at
+         all (standalone mockup), the identity opens with no access. */
+      var wi = (typeof window !== 'undefined' && window.__WHOAMI) ? window.__WHOAMI : null;
+      me = wi
+        ? { email: CURRENT_USER, name: wi.name || nameFromEmail(CURRENT_USER), role: wi.role || 'No access', admin: !!wi.admin, pillars: wi.pillars || {}, items: wi.items || {} }
+        : { email: CURRENT_USER, name: nameFromEmail(CURRENT_USER), role: 'No access', admin: false, pillars: {}, items: {} };
       MEMBERS.unshift(me);
     }
     currentUser = me;
@@ -3325,7 +3328,7 @@ if (typeof GAS_MODE === 'undefined' || !GAS_MODE) bootApp();
       SB.rpc('whoami').then(function(r){
         if(r.error||!r.data){$('naEmail').textContent=MYEMAIL||'(không đọc được email)';gate('gateNoAccess');return;}
         if(booted)return; booted=true;
-        ME=r.data; CURRENT_USER=MYEMAIL;
+        ME=r.data; window.__WHOAMI=r.data; CURRENT_USER=MYEMAIL;
         $('gateLogin').hidden=true;$('gateNoAccess').hidden=true;
         window.google.script.run.withSuccessHandler(function(res){
           if(res&&res.ok){if(res.data&&res.data.processes)DOC=res.data; if(res.members&&res.members.length)MEMBERS=res.members; if(res.notifications)NOTIFS=res.notifications; if(res.config)window.EDL_CFG={mailerUrl:res.config.mailer_url,mailerSecret:res.config.mailer_secret};}
