@@ -15,7 +15,7 @@
 .sb-gate button.ghost{background:transparent;color:#242F52;border:1px solid #D2CFC4}
 .sb-err{color:#B23A3A;font-size:13px;margin-top:8px}
 </style>
-<style>.dg-node-badge{font-size:13px!important;font-weight:700!important;padding:3px 8px!important;min-width:24px;height:auto!important;border-radius:8px!important;line-height:1.3!important}.pillar-guide{--p-accent:#242F52;--p-text:#242F52}.hb-notiflist{max-height:52vh;overflow:auto}.hb-notif__row{display:flex;align-items:center;justify-content:space-between;gap:8px}.hb-notif__date{color:#7A8199;font-size:11px;white-space:nowrap}.hb-npic{margin:2px 0 6px;font-size:12px;padding:5px 7px;border:1px solid #D2CFC4;border-radius:8px;width:100%}.hb-bellpanel__head{position:sticky;top:0;background:#fff;z-index:3}.hb-bellpanel__tools{position:sticky;top:34px;background:#fff;z-index:2}.mk-step-move{border:1px solid #D2CFC4;background:#fff;border-radius:6px;width:22px;height:22px;font-size:9px;color:#4A5268;margin-left:4px;cursor:pointer;flex:0 0 auto}.mk-req{color:#B23A3A}.dg-phase{position:absolute;border-left:3px solid #242F52;background:rgba(36,47,82,.06);border-radius:6px;display:flex;align-items:center;justify-content:center;z-index:0;pointer-events:none}.dg-phase span{writing-mode:vertical-rl;transform:rotate(180deg);font-weight:700;font-size:12px;color:#242F52;letter-spacing:.1em;text-transform:uppercase}</style>
+<style>.dg-node-badge{font-size:13px!important;font-weight:700!important;padding:3px 8px!important;min-width:24px;height:auto!important;border-radius:8px!important;line-height:1.3!important}.pillar-guide{--p-accent:#242F52;--p-text:#242F52}.hb-bellpanel{max-height:none!important;overflow:visible!important;display:flex;flex-direction:column}.hb-bellpanel__head{position:static}.hb-bellpanel__tools{position:static}.hb-notiflist{max-height:56vh;overflow-y:auto}.hb-notif__row{display:flex;align-items:center;justify-content:space-between;gap:8px}.hb-notif__date{color:#7A8199;font-size:11px;white-space:nowrap}.hb-npic{margin:0;font-size:12px;padding:6px 8px;border:1px solid #D2CFC4;border-radius:8px;width:100%;background:#fff}.hb-notif__t--deleted{background:#FBE9E7;color:#A8322A}.hb-notif__t--restored{background:#EAF5EC;color:#2E6B37}.hb-filterbtn{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border:1px solid var(--hairline-strong,#D2CFC4);background:var(--paper-raised,#fff);border-radius:999px;color:#4A5268;cursor:pointer;flex:0 0 auto}.hb-filterbtn:hover{background:var(--lane-bg,#F5F4F0)}.hb-filterbtn.is-on{background:#242F52;border-color:#242F52;color:#fff}.hb-filterbtn svg{width:16px;height:16px}.hb-filterwrap{position:relative}.hb-picpop{position:absolute;right:0;top:40px;z-index:130;width:270px;max-height:340px;overflow-y:auto;background:#fff;border:1px solid var(--hairline-strong,#D2CFC4);border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.16);padding:6px}.hb-picpop__opt{display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:0;background:none;border-radius:8px;padding:8px 10px;cursor:pointer;font-family:var(--font-body);font-size:13px;color:var(--ink,#1B2233)}.hb-picpop__opt:hover{background:var(--lane-bg,#F5F4F0)}.hb-picpop__opt.is-sel{background:var(--indigo-2-fill,#E8ECF7);font-weight:700}.hb-picpop__opt .pic-avatar{width:26px;height:26px;font-size:11px}.hb-picpop__name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.hb-picpop__count{font-size:11px;color:#7A8199;background:var(--lane-bg,#F5F4F0);border-radius:999px;padding:1px 8px;flex:0 0 auto}.hb-picpop__hd{font-family:var(--font-body);font-weight:700;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#7A8199;padding:8px 10px 4px}.hb-guidelink{display:inline-flex;align-items:center;gap:8px;margin:0 0 14px;padding:10px 14px;background:var(--indigo-2-fill,#E8ECF7);border:1px solid rgba(36,47,82,.16);border-radius:10px;color:#242F52;font-family:var(--font-body);font-weight:700;font-size:13px;text-decoration:none;cursor:pointer}.hb-guidelink:hover{background:#242F52;color:#fff}.hb-guidelink svg{width:16px;height:16px}.toc-card__trash{position:absolute;top:10px;right:10px;width:26px;height:26px;border:1px solid var(--hairline-strong,#D2CFC4);background:rgba(255,255,255,.9);border-radius:7px;color:#A8322A;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2}.toc-card__trash:hover{background:#FBE9E7;border-color:#A8322A}.toc-card__trash svg{width:14px;height:14px}.toc-card{position:relative}.pl-trash-restore{border-color:#4FA45A;color:#2E6B37}.pl-trash-restore:hover{background:#EAF5EC}.mk-step-drag{display:flex;align-items:center;justify-content:center;width:20px;color:#B7BAC9;cursor:grab;flex:0 0 auto;font-size:13px;user-select:none}.mk-step-drag:active{cursor:grabbing}.mk-step-row.is-drag{opacity:.4}.mk-step-row.is-over{box-shadow:inset 0 2px 0 #242F52}.mk-req{color:#B23A3A}.mk-drop{border:1.5px dashed var(--hairline-strong,#D2CFC4);border-radius:10px;background:var(--lane-bg,#F5F4F0);padding:14px;text-align:center;color:#4A5268;font-size:12px;cursor:pointer;margin-bottom:8px}.mk-drop:hover,.mk-drop.is-over{border-color:#242F52;background:#EEF1F8;color:#242F52}.mk-drop b{color:#242F52}.al-export{position:relative}.al-exportmenu{position:absolute;right:0;top:34px;z-index:20;background:#fff;border:1px solid var(--hairline-strong,#D2CFC4);border-radius:10px;box-shadow:0 12px 30px rgba(0,0,0,.16);padding:6px;min-width:150px}.al-exportmenu button{display:block;width:100%;text-align:left;border:0;background:none;border-radius:7px;padding:8px 12px;font-family:var(--font-body);font-size:13px;color:var(--ink,#1B2233);cursor:pointer}.al-exportmenu button:hover{background:var(--lane-bg,#F5F4F0)}.dg-phase{position:absolute;border-left:3px solid #242F52;background:rgba(36,47,82,.06);border-radius:6px;display:flex;align-items:center;justify-content:center;z-index:0;pointer-events:none}.dg-phase span{writing-mode:vertical-rl;transform:rotate(180deg);font-weight:700;font-size:12px;color:#242F52;letter-spacing:.1em;text-transform:uppercase}</style>
 <title>EDL Internal Handbook</title>
 <style>
 /* ==========================================================================
@@ -1046,15 +1046,14 @@ textarea{resize:vertical;min-height:60px;line-height:1.5}
 
 <div class="sb-gate" id="gateLogin" hidden><div class="sb-gate__box">
   <div class="sb-pennant"></div><h1>EDL Internal Handbook</h1>
-  <p>Trang nội bộ Pizza 4P's. Nhập email công ty để nhận link đăng nhập.</p>
-  <div id="loginForm"><input id="loginEmail" type="email" autocomplete="email" placeholder="ban@pizza4ps.com"><div><button id="emailBtn">Gửi link đăng nhập</button></div><div class="sb-err" id="loginErr"></div></div>
-  <p id="loginSent" hidden style="color:#1F6F6B;font-weight:600">✓ Đã gửi! Mở email và bấm link để đăng nhập (xem cả Spam).</p>
+  <div id="loginForm"><input id="loginEmail" type="email" autocomplete="email" placeholder="you@pizza4ps.com"><div><button id="emailBtn">Send me a sign-in link</button></div><div class="sb-err" id="loginErr"></div></div>
+  <p id="loginSent" hidden style="color:#1F6F6B;font-weight:600">✓ Sent! Open the email and click the link to sign in (check Spam too).</p>
 </div></div>
 <div class="sb-gate" id="gateNoAccess" hidden><div class="sb-gate__box">
-  <div class="sb-pennant" style="opacity:.5"></div><h1>Chưa có quyền truy cập</h1>
-  <p>Bạn đang đăng nhập bằng <b id="naEmail"></b>, nhưng tài khoản này chưa được cấp quyền vào EDL Internal Handbook.</p>
-  <p>Vui lòng liên hệ L&amp;D Team tại <b>lnd@pizza4ps.com</b>.</p>
-  <button class="ghost" id="naSignout">Đăng xuất</button>
+  <div class="sb-pennant" style="opacity:.5"></div><h1>No access yet</h1>
+  <p>You&#39;re signed in as <b id="naEmail"></b>, but this account has not been granted access to the EDL Internal Handbook.</p>
+  <p>Please contact the L&amp;D Team at <b>lnd@pizza4ps.com</b>.</p>
+  <button class="ghost" id="naSignout">Sign out</button>
 </div></div>
 
 <div class="hb-topbar">
@@ -1155,6 +1154,9 @@ textarea{resize:vertical;min-height:60px;line-height:1.5}
         <button class="al-tb" data-cmd="createLink" title="Insert link">&#128279; Link</button>
         <button class="al-tb" id="alAttach" title="Attach file / link">&#128206; Attach</button>
         <button class="al-tb" id="alEmbed" title="Embed a slide">&#9638; Embed slide</button>
+        <span class="al-tb__sep"></span>
+        <span class="al-export"><button class="al-tb" id="alExport" title="Export this document">&#8681; Export</button>
+          <div class="al-exportmenu" id="alExportMenu" hidden><button type="button" data-exp="pdf">Export as PDF</button><button type="button" data-exp="word">Export as Word</button></div></span>
         <span class="al-tb__sep"></span>
         <span class="al-tb__label">Colour</span><span class="al-colorbtns" id="alColors"></span>
       </div>
@@ -1646,12 +1648,34 @@ var PILLARS = [
   { key: 'data', label: 'Data' },
   { key: 'logistics', label: 'Logistics' },
   { key: 'training', label: 'Training' },
-  { key: 'guide', label: 'Hướng dẫn' }
+  { key: 'guide', label: 'Guide' }
 ];
 var PILLAR_LABEL = {}; PILLARS.forEach(function (p) { PILLAR_LABEL[p.key] = p.label; });
 /* Derive a display name from an email local part: nguyen.che -> "Nguyen Che". */
 function nameFromEmail(e) { if (!e) return ''; return String(e).split('@')[0].split(/[._-]+/).filter(Boolean)
   .map(function (w) { return w.charAt(0).toUpperCase() + w.slice(1); }).join(' '); }
+/* Display name for any email. A current member shows their name; someone who
+   was removed from the system still shows the email we saved on the document,
+   so past PIC / created-by / reviewer never turn into a blank. */
+function displayName(email) { if (!email) return ''; var m = memberByEmail(email); return m ? m.name : email; }
+/* Build role-grouped <option>s so a long people list reads by role instead of
+   one flat jumble. `members` is the pool; `cur` the selected email. */
+var ROLE_ORDER = ['L&D Head', 'EDL', 'TPM', 'Intern', 'No access', 'Custom'];
+function roleGroupedOptions(members, cur, includeNone) {
+  var groups = {}; members.forEach(function (m) { var r = m.role || 'Custom'; (groups[r] = groups[r] || []).push(m); });
+  var order = Object.keys(groups).sort(function (a, b) {
+    var ia = ROLE_ORDER.indexOf(a), ib = ROLE_ORDER.indexOf(b); return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || a.localeCompare(b); });
+  var html = includeNone ? '<option value="">— none —</option>' : '';
+  order.forEach(function (r) {
+    html += '<optgroup label="' + esc(r) + '">' + groups[r].sort(function (a, b) { return (a.name || '').localeCompare(b.name || ''); }).map(function (m) {
+      return '<option value="' + esc(m.email) + '"' + (m.email === cur ? ' selected' : '') + '>' + esc(m.name) + '</option>'; }).join('') + '</optgroup>';
+  });
+  return html;
+}
+/* funnel / filter icon */
+var FILTER_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h18l-7 8v5l-4 2v-7z"/></svg>';
+var GUIDE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h9l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M14 3v5h5M8 13h8M8 17h6"/></svg>';
+var TRASH_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6"/></svg>';
 
 var KIND_LABEL = { process: 'Process', alignment: 'Alignment' };
 var KIND_PLURAL = { process: 'Processes', alignment: 'Alignments' };
@@ -1706,10 +1730,35 @@ function hasAnyAccess() {
 }
 /* Who can SEE an item: view+ sees live & archived; drafts only for editors. */
 function canSee(item) {
+  if (item.deleted) return false;               /* soft-deleted: hidden from every normal listing (see Trash) */
   var lvl = accessLevel(item);
   if (lvl === 'none') return false;
   if (item.status === 'draft') return lvl === 'edit';
   return true;
+}
+
+/* Soft delete (recoverable): only people who can edit the item may delete it.
+   The item is hidden everywhere but kept in the database and shown under Trash
+   in its pillar, where an editor can restore it. Every delete / restore is
+   written to the audit log and announced to everyone in Notifications. */
+function softDeleteItem(p) {
+  if (!canEditItem(p)) { Modal.alert('View only', 'Only people who can edit this item may delete it.'); return; }
+  Modal.confirm('Delete this ' + KIND_LABEL[kindOf(p)].toLowerCase() + '?',
+    '“' + esc(p.title) + '” will be moved to Trash. Anyone with edit rights can restore it later.', function () {
+      p.deleted = true; p.deletedBy = currentUser.email; p.deletedAt = todayISO();
+      persist('Deleted: ' + p.title, function (ok, r) {
+        if (!ok) { p.deleted = false; Modal.alert('Delete failed', errText(r)); return; }
+        addNotif('deleted', p); notifyServer('Deleted', p); render();
+      });
+    }, { danger: true, okLabel: 'Delete' });
+}
+function restoreItem(p) {
+  if (!canEditItem(p)) return;
+  p.deleted = false; p.deletedBy = ''; p.deletedAt = '';
+  persist('Restored: ' + p.title, function (ok, r) {
+    if (!ok) { p.deleted = true; Modal.alert('Restore failed', errText(r)); return; }
+    addNotif('restored', p); notifyServer('Restored', p); render();
+  });
 }
 
 /* The logo — top bar renders the 4P's pennant (inlined SVG). Set MARK_DATA_URI
@@ -1718,6 +1767,7 @@ var LOGO_SRC = (typeof MARK_DATA_URI !== 'undefined' && MARK_DATA_URI) ? MARK_DA
 
 var P = null, sel = null, dirty = false, dgHandle = null, siteHandle = null;
 var homeSearch = '', homeMode = 'pillar', pillarSearch = {}, picOpen = {}, homePicFilter = '';
+var pillarPicFilter = {}, pillarTrashOpen = {};
 function visibleHome(p) { return canSee(p) && (!homePicFilter || (p.pic || '') === homePicFilter); }
 var view = { level: 'home', pillar: null, proc: null };
 var returnTo = null;
@@ -1745,7 +1795,7 @@ function pushHistory(p, summary) { p._history = p._history || []; p._history.uns
 function openHistory(p) {
   if (typeof GAS_MODE !== 'undefined' && GAS_MODE) {
     google.script.run.withSuccessHandler(function (rows) { showHistory(p, rows || []); })
-      .withFailureHandler(function (e) { Modal.alert('Edit history', 'Không tải được lịch sử: ' + (e && e.message || e)); })
+      .withFailureHandler(function (e) { Modal.alert('Edit history', 'Could not load history: ' + (e && e.message || e)); })
       .getHistory(p.process_id);
   } else { showHistory(p, p._history || []); }
 }
@@ -1759,7 +1809,7 @@ function showHistory(p, h) {
       Modal.confirm('Restore this version?', 'From ' + fmtDate(v.at) + ' by ' + esc(v.by || '') + '. The current content will be replaced by this version.', function () {
         var snap = v.snap ? (typeof v.snap === 'string' ? JSON.parse(v.snap) : v.snap) : null;
         if (snap) { for (var k in snap) { p[k] = snap[k]; } render();
-          Modal.alert('Restored', 'Đã nạp bản từ ' + fmtDate(v.at) + '. Bấm Save/Publish để lưu lại.'); }
+          Modal.alert('Restored', 'Loaded the version from ' + fmtDate(v.at) + '. Click Save / Publish to keep it.'); }
       }, { okLabel: 'Restore' });
     });
 }
@@ -2006,11 +2056,11 @@ function saveWorkbook(aoa, filename) {
 }
 function downloadCSVTemplate() {
   saveWorkbook([XLSX_COLS,
-    ['start', 'Intern', 'start', 'Bắt đầu', '', '', 'collect', '', '', '', '', '', ''],
-    ['collect', 'Intern', 'action', 'Thu thập dữ liệu', 'Mô tả việc cần làm', '15–20 hằng tháng', 'review', '', '', 'Ghi chú', '1', '1', '2'],
-    ['review', 'TPM', 'decision', 'Duyệt nội dung', '', '', '', 'publish', 'collect', 'Có→publish; Không→collect', '1', '1', '1'],
-    ['publish', 'Intern', 'action', 'Đăng thông báo', 'Gửi email & đăng nhóm', 'cuối tháng', 'end', '', '', '', '1', '1', '1'],
-    ['end', 'Intern', 'end', 'Kết thúc', '', '', '', '', '', '', '', '', '']
+    ['start', 'Intern', 'start', 'Start', '', '', 'collect', '', '', '', '', '', ''],
+    ['collect', 'Intern', 'action', 'Collect data', 'Describe what to do', '15–20 monthly', 'review', '', '', 'Note', '1', '1', '2'],
+    ['review', 'TPM', 'decision', 'Review content', '', '', '', 'publish', 'collect', 'Yes→publish; No→collect', '1', '1', '1'],
+    ['publish', 'Intern', 'action', 'Post announcement', 'Send email & post to group', 'end of month', 'end', '', '', '', '1', '1', '1'],
+    ['end', 'Intern', 'end', 'End', '', '', '', '', '', '', '', '', '']
   ], 'process-template');
 }
 function parseCSV(text) {
@@ -2038,8 +2088,8 @@ function importCSV(pillarKey) {
         if (window.XLSX) { var wb = isCsv ? XLSX.read(reader.result, { type: 'string' }) : XLSX.read(new Uint8Array(reader.result), { type: 'array' });
           aoa = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1 }); }
         else aoa = parseCSV(String(reader.result));
-      } catch (e) { Modal.alert('Không đọc được file', String(e && e.message || e)); return; }
-      if (!aoa || aoa.length < 2) { Modal.alert('Nothing to import', 'File chưa có bước nào.'); return; }
+      } catch (e) { Modal.alert('Could not read the file', String(e && e.message || e)); return; }
+      if (!aoa || aoa.length < 2) { Modal.alert('Nothing to import', 'The file has no steps yet.'); return; }
       var header = (aoa[0] || []).map(function (x) { return String(x == null ? '' : x).trim().toLowerCase(); });
       function col(n) { return header.indexOf(n); }
       var ci = { id: col('step_id'), lane: col('lane'), type: col('type'), label: col('label'), task: col('task'), timeline: col('timeline'),
@@ -2064,7 +2114,7 @@ function importCSV(pillarKey) {
       DOC.processes.push({ process_id: id, title: title, subtitle: '', status: 'draft', pillar: pillarKey, kind: 'process',
         pic: currentUser.email, updatedAt: todayISO(), createdBy: currentUser.email, lanes: owners.slice(),
         owners: ['TPM', 'Intern', 'EDL', 'L&D Head', 'Stakeholders'], steps: steps });
-      Modal.alert('Imported — please review', 'Đã tạo "' + title + '" dạng nháp trong ' + PILLAR_LABEL[pillarKey] + '. Kiểm tra các bước trước khi xuất bản.');
+      Modal.alert('Imported — please review', 'Created “' + title + '” as a draft in ' + PILLAR_LABEL[pillarKey] + '. Check the steps before publishing.');
       openEditor(id);
     };
     if (isCsv || !window.XLSX) reader.readAsText(file, 'UTF-8'); else reader.readAsArrayBuffer(file);
@@ -2093,9 +2143,9 @@ function validate() {
     if (!s.label || !s.label.trim()) e.push('One step has no name.');
     if (!s.lane || !s.lane.trim()) e.push('Step "' + s.label + '" has nobody assigned to it.');
     if (s.type === 'action' || s.type === 'decision') {
-      if (s.workingDays == null || s.workingDays === '') e.push('Step "' + s.label + '" thiếu Working days.');
-      if (s.persons == null || s.persons === '') e.push('Step "' + s.label + '" thiếu Số người.');
-      if (s.hoursPerPerson == null || s.hoursPerPerson === '') e.push('Step "' + s.label + '" thiếu Hours per person.');
+      if (s.workingDays == null || s.workingDays === '') e.push('Step "' + s.label + '" is missing Working days.');
+      if (s.persons == null || s.persons === '') e.push('Step "' + s.label + '" is missing People on this step.');
+      if (s.hoursPerPerson == null || s.hoursPerPerson === '') e.push('Step "' + s.label + '" is missing Hours per person.');
     }
     (s.files || []).forEach(function (f) { if (f.url && !looksLikeUrl(f.url)) e.push('"' + (f.label || 'A file') + '" has a link that doesn’t look like a real URL.'); });
   });
@@ -2149,7 +2199,9 @@ function itemCard(p) {
   var meta = p.status === 'draft' ? '<span>Draft</span>' : p.status === 'archived' ? '<span>Archived</span>'
     : (kind === 'alignment' ? '<span>Alignment doc</span>' : '<span>' + plural(c.steps, 'step') + '</span><span>' + plural(c.gates, 'review gate') + '</span>');
   var revBadge = p.review === 'pending' ? '<span class="rev-chip rev-chip--pending">In review</span>' : '';
-  return '<button class="toc-card toc-card--flat" data-proc="' + p.process_id + '" data-pillarkey="' + p.pillar + '">' +
+  var trash = edit ? '<button class="toc-card__trash" data-del="' + esc(p.process_id) + '" title="Delete (move to Trash)" aria-label="Delete ' + esc(p.title) + '">' + TRASH_SVG + '</button>' : '';
+  return '<div class="toc-cardwrap" style="position:relative;height:100%">' +
+    '<button class="toc-card toc-card--flat" data-proc="' + p.process_id + '" data-pillarkey="' + p.pillar + '">' +
     '<div class="toc-card__top">' +
       '<span class="mk-status-pill mk-status-pill--' + p.status + '">' + p.status + '</span>' + revBadge +
       (edit ? '' : '<span class="hb-access hb-access--view">' + LOCK + 'View only</span>') + ARROW +
@@ -2158,14 +2210,73 @@ function itemCard(p) {
     '<p class="toc-card__desc">' + esc(p.subtitle || '') + '</p>' +
     '<div class="toc-card__meta toc-card__meta--row">' + meta + '</div>' +
     '<div class="toc-card__foot toc-card__foot--br">' +
-      '<span class="toc-card__pic">' + (p.pic ? 'PIC: ' + esc(p.pic) : 'No PIC') + '</span>' +
+      '<span class="toc-card__pic">' + (p.pic ? 'PIC: ' + esc(displayName(p.pic)) : 'No PIC') + '</span>' +
       '<span class="toc-card__date">' + (p.updatedAt ? 'Updated on ' + fmtDate(p.updatedAt) : '') + '</span>' +
-    '</div></button>';
+    '</div></button>' + trash + '</div>';
+}
+/* A card for a soft-deleted item, shown only under Trash to editors. */
+function trashCard(p) {
+  return '<div class="toc-cardwrap" style="position:relative;height:100%">' +
+    '<div class="toc-card toc-card--flat" style="opacity:.75">' +
+    '<div class="toc-card__top"><span class="mk-status-pill mk-status-pill--archived">deleted</span>' +
+      '<div class="mk-grow"></div>' +
+      '<button class="mk-btn pl-trash-restore" data-restore="' + esc(p.process_id) + '" style="padding:4px 10px;font-size:11px">↩ Restore</button></div>' +
+    '<h3 class="toc-card__title toc-card__title--ink">' + esc(p.title) + '</h3>' +
+    '<p class="toc-card__desc">' + esc(p.subtitle || '') + '</p>' +
+    '<div class="toc-card__foot toc-card__foot--br">' +
+      '<span class="toc-card__pic">' + (p.pic ? 'PIC: ' + esc(displayName(p.pic)) : 'No PIC') + '</span>' +
+      '<span class="toc-card__date">' + (p.deletedBy ? 'Deleted by ' + esc(displayName(p.deletedBy)) + (p.deletedAt ? ' on ' + fmtDate(p.deletedAt) : '') : '') + '</span>' +
+    '</div></div></div>';
 }
 function wireCards(root) {
   root.querySelectorAll('[data-proc]').forEach(function (b) {
     b.onclick = function () { goProcess(b.getAttribute('data-pillarkey'), b.getAttribute('data-proc')); };
   });
+  root.querySelectorAll('[data-del]').forEach(function (b) {
+    b.onclick = function (ev) { ev.stopPropagation(); var p = DOC.processes.filter(function (x) { return x.process_id === b.getAttribute('data-del'); })[0]; if (p) softDeleteItem(p); };
+  });
+  root.querySelectorAll('[data-restore]').forEach(function (b) {
+    b.onclick = function (ev) { ev.stopPropagation(); var p = DOC.processes.filter(function (x) { return x.process_id === b.getAttribute('data-restore'); })[0]; if (p) restoreItem(p); };
+  });
+}
+
+/* The single "how to use the handbook" guide, shown as a link line (not a card). */
+function guideDoc() { return DOC.processes.filter(function (p) { return p.pillar === 'guide' && canSee(p); })
+  .sort(function (a, b) { return (a.status === 'live' ? 0 : 1) - (b.status === 'live' ? 0 : 1); })[0] || null; }
+
+/* -------- shared PIC filter (funnel icon + brand popover, grouped by role) -------- */
+function picCountsFor(list) { var c = {}; list.forEach(function (p) { var e = p.pic || ''; if (e) c[e] = (c[e] || 0) + 1; }); return c; }
+function picFilterControl(current, countsMap) {
+  var total = 0; Object.keys(countsMap).forEach(function (k) { total += countsMap[k]; });
+  var groups = {}; MEMBERS.forEach(function (m) { var r = m.role || 'Custom'; (groups[r] = groups[r] || []).push(m); });
+  /* PIC emails that are no longer members (removed) still appear, by saved email */
+  var known = {}; MEMBERS.forEach(function (m) { known[m.email] = 1; });
+  var removed = Object.keys(countsMap).filter(function (e) { return !known[e]; });
+  var pop = '<div class="hb-picpop" id="' + 'picPop' + '" hidden>' +
+    '<button class="hb-picpop__opt' + (!current ? ' is-sel' : '') + '" data-pic=""><span class="pic-avatar">★</span>' +
+    '<span class="hb-picpop__name">All PIC</span><span class="hb-picpop__count">' + total + '</span></button>';
+  Object.keys(groups).sort(function (a, b) { var ia = ROLE_ORDER.indexOf(a), ib = ROLE_ORDER.indexOf(b); return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || a.localeCompare(b); })
+    .forEach(function (r) {
+      pop += '<div class="hb-picpop__hd">' + esc(r) + '</div>';
+      groups[r].sort(function (a, b) { return (a.name || '').localeCompare(b.name || ''); }).forEach(function (m) {
+        pop += '<button class="hb-picpop__opt' + (current === m.email ? ' is-sel' : '') + '" data-pic="' + esc(m.email) + '">' +
+          '<span class="pic-avatar">' + esc((m.name[0] || '?').toUpperCase()) + '</span>' +
+          '<span class="hb-picpop__name">' + esc(m.name) + '</span><span class="hb-picpop__count">' + (countsMap[m.email] || 0) + '</span></button>';
+      });
+    });
+  if (removed.length) { pop += '<div class="hb-picpop__hd">Removed</div>';
+    removed.sort().forEach(function (e) { pop += '<button class="hb-picpop__opt' + (current === e ? ' is-sel' : '') + '" data-pic="' + esc(e) + '">' +
+      '<span class="pic-avatar">?</span><span class="hb-picpop__name">' + esc(e) + '</span><span class="hb-picpop__count">' + (countsMap[e] || 0) + '</span></button>'; }); }
+  pop += '</div>';
+  return '<div class="hb-filterwrap"><button class="hb-filterbtn' + (current ? ' is-on' : '') + '" id="picFilterBtn" title="Filter by PIC" aria-label="Filter by PIC">' + FILTER_SVG + '</button>' + pop + '</div>';
+}
+/* Wire a picFilterControl inside `root`. onPick(email) receives '' for All. */
+function wirePicFilter(root, onPick) {
+  var btn = root.querySelector('#picFilterBtn'), pop = root.querySelector('#picPop'); if (!btn || !pop) return;
+  btn.onclick = function (e) { e.stopPropagation(); pop.hidden = !pop.hidden; };
+  pop.onclick = function (e) { e.stopPropagation(); };
+  root.querySelectorAll('#picPop [data-pic]').forEach(function (o) { o.onclick = function () { pop.hidden = true; onPick(o.getAttribute('data-pic')); }; });
+  document.addEventListener('click', function h(e) { if (!pop) return; if (!e.target.closest || (!e.target.closest('#picPop') && !e.target.closest('#picFilterBtn'))) pop.hidden = true; });
 }
 
 /* -------------------------------- home -------------------------------- */
@@ -2193,22 +2304,22 @@ function drawHome() {
     bodyHtml = '<section class="toc-section"><h2 class="pl-group__title">Results<span class="pl-group__count">' + results.length + '</span></h2>' +
       (results.length ? '<div class="toc-grid">' + results.map(itemCard).join('') + '</div>' : '<p class="pl-empty">Nothing matches “' + esc(q) + '”.</p>') + '</section>';
   } else {
-    var picSet = {}; DOC.processes.forEach(function (p) { if (canSee(p) && p.pic) picSet[p.pic] = 1; });
-    var picOpts = '<option value="">Tất cả PIC</option>' + Object.keys(picSet).sort().map(function (pc) {
-      return '<option value="' + esc(pc) + '"' + (homePicFilter === pc ? ' selected' : '') + '>' + esc(pc) + '</option>'; }).join('');
+    var gd = guideDoc();
+    var guideLink = gd ? '<a href="#" class="hb-guidelink" id="guideLink">' + GUIDE_SVG + 'How to use this handbook</a>' : '';
+    var visList = DOC.processes.filter(function (p) { return canSee(p) && p.pillar !== 'guide'; });
     var seg = '<div class="hb-segrow" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px">' +
-      '<div class="hb-seg" role="group" aria-label="Group by">' +
+      '<div class="hb-seg" role="group" aria-label="Group by" style="margin-bottom:0">' +
       '<button data-mode="pillar" aria-pressed="' + (homeMode === 'pillar') + '">By pillar</button>' +
-      '<button data-mode="role" aria-pressed="' + (homeMode === 'role') + '">By Role</button></div>' +
-      '<div style="flex:1"></div>' +
-      '<label class="mk-hint" style="display:flex;align-items:center;gap:6px">Lọc PIC <select id="homePicFilter">' + picOpts + '</select></label></div>';
-    bodyHtml = '<section class="toc-section">' + seg + (homeMode === 'pillar' ? homeByPillar() : homeByRole()) + '</section>';
+      '<button data-mode="role" aria-pressed="' + (homeMode === 'role') + '">By role</button></div>' +
+      '<div style="flex:1"></div>' + picFilterControl(homePicFilter, picCountsFor(visList)) + '</div>';
+    bodyHtml = '<section class="toc-section">' + guideLink + seg + (homeMode === 'pillar' ? homeByPillar() : homeByRole()) + '</section>';
   }
   S.innerHTML = head + bodyHtml;
 
   var si = $('homeSearchInput');
   si.oninput = function () { homeSearch = si.value; drawHome(); var m = $('homeSearchInput'); m.focus(); m.setSelectionRange(m.value.length, m.value.length); };
-  var pf = $('homePicFilter'); if (pf) pf.onchange = function () { homePicFilter = pf.value; drawHome(); };
+  wirePicFilter(S, function (email) { homePicFilter = email; drawHome(); });
+  var gl = $('guideLink'); if (gl) gl.onclick = function (ev) { ev.preventDefault(); var gd = guideDoc(); if (gd) goProcess('guide', gd.process_id); };
   S.querySelectorAll('[data-mode]').forEach(function (b) { b.onclick = function () { homeMode = b.getAttribute('data-mode'); drawHome(); }; });
   S.querySelectorAll('[data-pillar]').forEach(function (b) { b.onclick = function () { goPillar(b.getAttribute('data-pillar')); }; });
   S.querySelectorAll('[data-picgroup]').forEach(function (b) { b.onclick = function () {
@@ -2216,7 +2327,7 @@ function drawHome() {
   wireCards(S);
 }
 function homeByPillar() {
-  return '<div class="toc-grid toc-grid--pillars">' + PILLARS.map(function (pl) {
+  return '<div class="toc-grid toc-grid--pillars">' + PILLARS.filter(function (pl) { return pl.key !== 'guide'; }).map(function (pl) {
     var mine = DOC.processes.filter(function (p) { return p.pillar === pl.key && visibleHome(p); });
     var procs = mine.filter(function (p) { return kindOf(p) === 'process'; }).length;
     var aligns = mine.filter(function (p) { return kindOf(p) === 'alignment'; }).length;
@@ -2229,9 +2340,8 @@ function homeByPillar() {
   }).join('') + '</div>';
 }
 function homeByRole() {
-  var ROLE_ORDER = ['L&D Head', 'EDL', 'TPM', 'Intern'];
   var groups = {}, order = [];
-  DOC.processes.forEach(function (p) { if (!visibleHome(p)) return;
+  DOC.processes.forEach(function (p) { if (p.pillar === 'guide' || !visibleHome(p)) return;
     var m = memberByEmail(p.pic || ''); var k = (m && m.role) ? m.role : '(No role)';
     if (!groups[k]) { groups[k] = []; order.push(k); }
     groups[k].push(p);
@@ -2240,7 +2350,7 @@ function homeByRole() {
   order.sort(function (a, b) { var ia = ROLE_ORDER.indexOf(a), ib = ROLE_ORDER.indexOf(b);
     return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || a.localeCompare(b); });
   var CHEV = '<svg class="pic-chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8l4 4 4-4"/></svg>';
-  return '<p class="pl-empty" style="font-style:normal;margin-bottom:14px">Nhóm theo vai trò của PIC.</p>' + order.map(function (role) {
+  return '<p class="pl-empty" style="font-style:normal;margin-bottom:14px">Grouped by the role of each PIC.</p>' + order.map(function (role) {
     var open = picOpen['role:' + role] === true;
     return '<div class="pic-group">' +
       '<button class="pic-group__head" data-picgroup="role:' + esc(role) + '" aria-expanded="' + open + '">' + CHEV +
@@ -2279,16 +2389,23 @@ function drawPillar() {
   var S = $('siteInner'); S.className = 'hb-shell pillar-' + view.pillar;
   var key = view.pillar, label = PILLAR_LABEL[key], edit = canCreateIn(key);
   var q = (pillarSearch[key] || '').trim().toLowerCase();
+  var picF = pillarPicFilter[key] || '';
   var all = DOC.processes.filter(function (p) { return p.pillar === key && canSee(p); });
-  var match = q ? all.filter(function (p) { return p.title.toLowerCase().indexOf(q) >= 0 || (p.subtitle || '').toLowerCase().indexOf(q) >= 0; }) : all;
+  var match = all.filter(function (p) {
+    if (picF && (p.pic || '') !== picF) return false;
+    if (q && p.title.toLowerCase().indexOf(q) < 0 && (p.subtitle || '').toLowerCase().indexOf(q) < 0) return false;
+    return true;
+  });
+  var trashed = DOC.processes.filter(function (p) { return p.pillar === key && p.deleted && canEditItem(p); });
 
   var tools = '<div class="pl-tools">' +
     '<span class="mk-search"><span class="mk-search__icon">' + SEARCH_SVG + '</span>' +
     '<input id="pillarSearchInput" placeholder="Search ' + esc(label) + '…" value="' + esc(pillarSearch[key] || '') + '"></span>' +
+    picFilterControl(picF, picCountsFor(all)) +
     '<span class="pl-tools__spacer"></span>';
   if (edit) tools += '<button class="mk-btn" id="importCsvBtn">&#8679; Import Excel</button>' +
     '<button class="mk-btn mk-btn--primary" id="newProcBtn">+ New</button>' +
-    '<a href="#" class="pl-tools__tmpl" id="dlTemplate">Download template</a>';
+    '<a href="#" class="pl-tools__tmpl" id="dlTemplate">Download process template</a>';
   else tools += '<span class="pl-tools__ro">' + LOCK + 'View only in ' + esc(label) + '</span>';
   tools += '</div>';
 
@@ -2302,13 +2419,25 @@ function drawPillar() {
     else body += '<div class="toc-grid">' + list.map(itemCard).join('') + '</div>';
     body += '</section>';
   });
-  if (!body) body = '<p class="pl-empty">' + (q ? 'Nothing matches “' + esc(q) + '”.' : 'Nothing in this pillar yet.') + '</p>';
+  if (!body) body = '<p class="pl-empty">' + (q || picF ? 'Nothing matches this filter.' : 'Nothing in this pillar yet.') + '</p>';
+
+  if (trashed.length) {
+    var topen = pillarTrashOpen[key] === true;
+    var CHEV = '<svg class="pic-chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8l4 4 4-4"/></svg>';
+    body += '<section class="pl-group" style="margin-top:28px"><div class="pic-group"><button class="pic-group__head" id="trashHead" aria-expanded="' + topen + '">' + CHEV +
+      '<span class="pic-avatar" style="background:#A8322A;font-size:15px">🗑</span>' +
+      '<span class="pic-group__col"><span class="pic-group__name">Trash</span><span class="pic-group__email">Deleted items you can restore</span></span>' +
+      '<span class="pl-group__count">' + trashed.length + '</span></button>' +
+      (topen ? '<div class="toc-grid" style="padding:0 14px 16px;margin-top:12px">' + trashed.map(trashCard).join('') + '</div>' : '') + '</div></section>';
+  }
 
   S.innerHTML = '<section class="toc-hero"><h1 class="hb-h1">' + label + '</h1>' +
     '<p class="hb-lede">Everything documented under the ' + label + ' pillar.</p></section>' + tools + body;
 
   var si = $('pillarSearchInput');
   si.oninput = function () { pillarSearch[key] = si.value; drawPillar(); var m = $('pillarSearchInput'); m.focus(); m.setSelectionRange(m.value.length, m.value.length); };
+  wirePicFilter(S, function (email) { pillarPicFilter[key] = email; drawPillar(); });
+  var th = $('trashHead'); if (th) th.onclick = function () { pillarTrashOpen[key] = !(pillarTrashOpen[key] === true); drawPillar(); };
   wireCards(S);
   if (edit) {
     $('newProcBtn').onclick = function () { createNewItem(key); };
@@ -2354,10 +2483,11 @@ function isReviewer(p) { return p.reviewer && (currentUser.email === p.reviewer 
 function heroFor(p, flowLabelHtml) {
   var kind = kindOf(p), edit = canEditItem(p);
   var histBtn = edit ? '<button class="mk-btn hb-history" id="histBtn" title="See and restore earlier versions">&#8635; History</button>' : '';
+  var delBtn = edit ? '<button class="mk-btn adm-remove" id="delProcBtn" title="Delete (move to Trash)">🗑 Delete</button>' : '';
   var editBtn = edit ? '<button class="mk-btn mk-btn--primary hb-editbtn" id="editProcBtn">✎ Edit this ' + KIND_LABEL[kind].toLowerCase() + '</button>' : '';
   var reviewChip = '', approveBtns = '';
   if (p.review === 'pending') {
-    reviewChip = '<span class="rev-chip rev-chip--pending">In review — waiting for ' + esc(p.reviewer || 'a reviewer') + '</span>';
+    reviewChip = '<span class="rev-chip rev-chip--pending">In review — waiting for ' + esc(p.reviewer ? displayName(p.reviewer) : 'a reviewer') + '</span>';
     if (isReviewer(p)) approveBtns = '<button class="mk-btn hb-approve" id="approveBtn">✓ Approve</button>' +
       '<button class="mk-btn mk-btn--primary" id="approvePubBtn">✓ Approve &amp; publish</button>';
   } else if (p.review === 'approved' && p.status !== 'live') {
@@ -2366,18 +2496,19 @@ function heroFor(p, flowLabelHtml) {
   return '<section class="proc-hero"><div class="proc-hero__top">' +
     '<span class="mk-status-pill mk-status-pill--' + p.status + '">' + p.status + '</span>' +
     '<span class="kind-tag kind-tag--' + kind + '">' + KIND_LABEL[kind] + '</span>' + reviewChip +
-    '<div class="mk-grow"></div>' + approveBtns + histBtn + editBtn + '</div>' +
+    '<div class="mk-grow"></div>' + approveBtns + histBtn + delBtn + editBtn + '</div>' +
     '<h1 class="hb-h1">' + esc(p.title) + '</h1>' +
     '<p class="hb-lede">' + esc(p.subtitle || '') + '</p>' +
     (flowLabelHtml || '') +
-    '<p class="proc-hero__by">' + (p.pic ? 'PIC: <b>' + esc(p.pic) + '</b>' : '') +
-      (p.updatedBy ? ' · Updated by ' + esc(p.updatedBy) + (p.updatedAt ? ' on ' + fmtDate(p.updatedAt) : '') : '') +
-      (p.createdBy ? ' · Created by ' + esc(p.createdBy) + (p.createdAt ? ' on ' + fmtDate(p.createdAt) : '') : '') +
-      (p.reviewedBy ? ' · Reviewed by ' + esc(p.reviewedBy) + (p.reviewedAt ? ' on ' + fmtDate(p.reviewedAt) : '') : '') +
+    '<p class="proc-hero__by">' + (p.pic ? 'PIC: <b>' + esc(displayName(p.pic)) + '</b>' : '') +
+      (p.updatedBy ? ' · Updated by ' + esc(displayName(p.updatedBy)) + (p.updatedAt ? ' on ' + fmtDate(p.updatedAt) : '') : '') +
+      (p.createdBy ? ' · Created by ' + esc(displayName(p.createdBy)) + (p.createdAt ? ' on ' + fmtDate(p.createdAt) : '') : '') +
+      (p.reviewedBy ? ' · Reviewed by ' + esc(displayName(p.reviewedBy)) + (p.reviewedAt ? ' on ' + fmtDate(p.reviewedAt) : '') : '') +
       '</p></section>';
 }
 function wireItemHeader(p) {
   var e = $('editProcBtn'); if (e) e.onclick = function () { openEditor(p.process_id); };
+  var db = $('delProcBtn'); if (db) db.onclick = function () { softDeleteItem(p); };
   var hb = $('histBtn'); if (hb) hb.onclick = function () { openHistory(p); };
   var a = $('approveBtn'); if (a) a.onclick = function () {
     var prev = p.review; p.review = 'approved'; a.disabled = true;
@@ -2460,15 +2591,14 @@ function drawEditorBar() {
   $('pkind').disabled = true;            // Type is fixed once chosen at creation
   $('pstatus').innerHTML = STATUSES.map(function (s) { return '<option value="' + s + '"' + (P.status === s ? ' selected' : '') + '>' + s + '</option>'; }).join('');
   var picSel = $('ppic');
-  picSel.innerHTML = '<option value="">— none —</option>' + MEMBERS.map(function (m) {
-    return '<option value="' + esc(m.email) + '"' + (P.pic === m.email ? ' selected' : '') + '>' + esc(m.email) + '</option>'; }).join('') +
-    (P.pic && !memberByEmail(P.pic) ? '<option value="' + esc(P.pic) + '" selected>' + esc(P.pic) + '</option>' : '');
+  picSel.innerHTML = roleGroupedOptions(MEMBERS, P.pic, true) +
+    (P.pic && !memberByEmail(P.pic) ? '<option value="' + esc(P.pic) + '" selected>' + esc(P.pic) + ' (removed)</option>' : '');
   var revSel = $('previewer');
   var REVIEWER_ROLES = { 'L&D Head': 1, 'EDL': 1, 'TPM': 1 };
   var reviewers = MEMBERS.filter(function (m) { return REVIEWER_ROLES[m.role]; });
   if (P.reviewer && !reviewers.some(function (m) { return m.email === P.reviewer; })) { var ex = memberByEmail(P.reviewer); if (ex) reviewers = reviewers.concat([ex]); }
-  revSel.innerHTML = '<option value="">— none —</option>' + reviewers.map(function (m) {
-    return '<option value="' + esc(m.email) + '"' + (P.reviewer === m.email ? ' selected' : '') + '>' + esc(m.name) + ' (' + esc(m.role) + ')</option>'; }).join('');
+  revSel.innerHTML = roleGroupedOptions(reviewers, P.reviewer, true) +
+    (P.reviewer && !memberByEmail(P.reviewer) ? '<option value="' + esc(P.reviewer) + '" selected>' + esc(P.reviewer) + ' (removed)</option>' : '');
   updatePublishButton();
 }
 
@@ -2477,26 +2607,44 @@ function draw() {
   var ordered = orderedSteps();
   $('stepsHead').textContent = 'Steps (' + P.steps.length + ')';
   var L = $('list'); L.innerHTML = '';
+  var dragId = null;
   ordered.forEach(function (s, i) {
-    var row = document.createElement('div'); row.className = 'mk-step-row';
+    var row = document.createElement('div'); row.className = 'mk-step-row'; row.setAttribute('data-rowid', s.id);
+    var grip = document.createElement('div'); grip.className = 'mk-step-drag'; grip.title = 'Drag to reorder'; grip.innerHTML = '⠿'; grip.setAttribute('draggable', 'true');
+    row.appendChild(grip);
     var b = document.createElement('button');
     b.type = 'button'; b.className = 'mk-step mk-step--' + s.type; b.setAttribute('data-id', s.id);
     b.setAttribute('aria-current', s.id === sel ? 'true' : 'false');
     b.innerHTML = '<span class="mk-step-num">' + (i + 1) + '</span><i class="mk-dot"></i><span><b>' + esc(s.label || '(untitled)') + '</b><em>' + esc(s.lane || '—') + '</em></span>';
     b.onclick = function () { selectStep(s.id); };
     row.appendChild(b);
-    var up = document.createElement('button'); up.type = 'button'; up.className = 'mk-step-move'; up.title = 'Move up'; up.textContent = '▲';
-    up.onclick = function (ev) { ev.stopPropagation(); moveStep(s.id, -1); };
-    var dn = document.createElement('button'); dn.type = 'button'; dn.className = 'mk-step-move'; dn.title = 'Move down'; dn.textContent = '▼';
-    dn.onclick = function (ev) { ev.stopPropagation(); moveStep(s.id, 1); };
-    row.appendChild(up); row.appendChild(dn);
     var del = document.createElement('button');
     del.type = 'button'; del.className = 'mk-step-del'; del.title = 'Delete this step';
     del.setAttribute('aria-label', 'Delete "' + esc(s.label || s.id) + '"'); del.textContent = '×';
     del.onclick = function (ev) { ev.stopPropagation(); removeStep(s.id); };
-    row.appendChild(del); L.appendChild(row);
+    row.appendChild(del);
+    /* drag to reorder — the grip starts the drag; the row is the drop target */
+    grip.addEventListener('dragstart', function (ev) { dragId = s.id; row.classList.add('is-drag'); try { ev.dataTransfer.effectAllowed = 'move'; ev.dataTransfer.setData('text/plain', s.id); } catch (e) {} });
+    grip.addEventListener('dragend', function () { dragId = null; row.classList.remove('is-drag'); L.querySelectorAll('.mk-step-row').forEach(function (r) { r.classList.remove('is-over'); }); });
+    row.addEventListener('dragover', function (ev) { if (dragId && dragId !== s.id) { ev.preventDefault(); row.classList.add('is-over'); } });
+    row.addEventListener('dragleave', function () { row.classList.remove('is-over'); });
+    row.addEventListener('drop', function (ev) { ev.preventDefault(); row.classList.remove('is-over'); if (dragId && dragId !== s.id) reorderSteps(dragId, s.id); });
+    L.appendChild(row);
   });
   drawBanner(); drawDiagram(); drawForm();
+}
+/* Move `dragId` to sit just before `targetId` in the visible flow order, then
+   write that order back into P.steps (flowOrder keeps same-depth ties in array
+   order, so sibling reordering sticks). */
+function reorderSteps(dragId, targetId) {
+  var ord = orderedSteps().slice();
+  var idx = function (id) { for (var i = 0; i < ord.length; i++) if (ord[i].id === id) return i; return -1; };
+  var from = idx(dragId); if (from < 0) return;
+  var moved = ord.splice(from, 1)[0];
+  var to = idx(targetId); if (to < 0) { ord.splice(from, 0, moved); return; }
+  ord.splice(to, 0, moved);        /* drop places the dragged step just above the target row */
+  P.steps = ord;
+  markDirty(); draw();
 }
 function moveStep(id, dir) {
   var ord = orderedSteps(), idx = -1;
@@ -2580,16 +2728,16 @@ function drawForm() {
   var isMarker = (s.type === 'start' || s.type === 'end');
   if (!isMarker) {
     h += '<div class="mk-f"><label for="i_timeline">Timeline</label><input id="i_timeline" value="' + esc(s.timeline) + '"></div>';
-    h += '<div class="mk-f"><label for="i_phase">Phase (nhóm giai đoạn)</label><select id="i_phase"><option value="">— none —</option>' +
+    h += '<div class="mk-f"><label for="i_phase">Phase</label><select id="i_phase"><option value="">— none —</option>' +
       ['Before', 'During', 'After'].map(function (ph) { return '<option value="' + ph + '"' + (s.phase === ph ? ' selected' : '') + '>' + ph + '</option>'; }).join('') +
-      '</select><div class="mk-tip">Gom các bước thành dải Before / During / After ở bên trái sơ đồ.</div></div>';
+      '</select><div class="mk-tip">Groups steps into Before / During / After bands down the left of the diagram.</div></div>';
     var reqE = (s.type === 'action' || s.type === 'decision') ? req : '';
     h += '<div class="mk-f"><label for="i_days">Working days' + reqE + '</label><input id="i_days" type="number" min="0" step="0.5" value="' + esc(s.workingDays == null ? '' : s.workingDays) + '" placeholder="e.g. 2"><div class="mk-tip">Calendar time this step takes — added up for total lead time.</div></div>';
-    h += '<div class="mk-f"><label for="i_persons">Số người (People on this step)' + reqE + '</label><input id="i_persons" type="number" min="1" step="1" value="' + esc(s.persons == null ? '' : s.persons) + '" placeholder="e.g. 1"></div>';
+    h += '<div class="mk-f"><label for="i_persons">People on this step' + reqE + '</label><input id="i_persons" type="number" min="1" step="1" value="' + esc(s.persons == null ? '' : s.persons) + '" placeholder="e.g. 1"></div>';
     var pc = Math.max(1, (s.persons != null && s.persons !== '') ? Number(s.persons) : (ticked.length || 1));
     h += '<div class="mk-f"><label for="i_hours">Hours per person' + reqE + '</label><input id="i_hours" type="number" min="0" step="0.5" value="' + esc(s.hoursPerPerson == null ? '' : s.hoursPerPerson) + '" placeholder="e.g. 2"><div class="mk-tip" id="effortReadout">' +
-      (s.hoursPerPerson != null && s.hoursPerPerson !== '' ? pc + ' người &times; ' + s.hoursPerPerson + 'h = <b>' + (pc * s.hoursPerPerson) + 'h tổng công</b>' :
-        'Thời gian MỘT người bỏ ra cho bước này. Nhân với Số người để ra tổng công.') + '</div></div>';
+      (s.hoursPerPerson != null && s.hoursPerPerson !== '' ? pc + ' people &times; ' + s.hoursPerPerson + 'h = <b>' + (pc * s.hoursPerPerson) + 'h total effort</b>' :
+        'Hours ONE person spends on this step. Multiplied by the number of people for total effort.') + '</div></div>';
     s.files = s.files || [];
     h += '<div class="mk-f"><label>Attach related files / links</label><div id="fileList">' + s.files.map(function (f, i) {
       var bad = f.url && !looksLikeUrl(f.url);
@@ -2598,12 +2746,12 @@ function drawForm() {
         '<button type="button" class="mk-file-del" data-fdel="' + i + '" aria-label="Remove">×</button></div>' + (bad ? '<div class="mk-file-err">Doesn’t look like a link — start with https://</div>' : ''); }).join('') + '</div>' +
       '<button type="button" class="mk-btn" id="addFile" style="width:100%">+ Add file or link</button></div>';
     s.images = s.images || [];
-    h += '<div class="mk-f"><label>Đính kèm ảnh / video hướng dẫn</label><div class="mk-tip" style="margin-top:0;margin-bottom:7px">Ảnh (PNG/JPG/GIF) hoặc video MP4. Có thể <b>dán trực tiếp (Ctrl+V)</b> ảnh chụp màn hình. Hiển thị ngay trong trang.</div>' +
+    h += '<div class="mk-f"><label>Attach guide images / video</label>' +
+      '<div class="mk-drop" id="imgDrop" tabindex="0"><b>Click to browse</b>, drag &amp; drop, or press <b>Ctrl+V</b> to paste a screenshot.<br><span style="font-size:11px">Images (PNG / JPG / GIF) or MP4 video.</span></div>' +
       '<div id="imgList" class="mk-imgs">' + s.images.map(function (im, i) {
         var isVid = /^video\//.test(im.type || '') || /\.mp4($|\?)/i.test(im.src || '');
         var media = isVid ? '<video src="' + esc(im.src) + '" controls style="max-width:100%;border-radius:6px"></video>' : '<img src="' + esc(im.src) + '" alt="' + esc(im.name || '') + '">';
-        return '<figure class="mk-img">' + media + '<button type="button" class="mk-img-del" data-idel="' + i + '" aria-label="Remove">×</button><figcaption>' + esc(im.name || 'file') + '</figcaption></figure>'; }).join('') + '</div>' +
-      '<button type="button" class="mk-btn" id="addImg" style="width:100%">+ Thêm ảnh / video</button></div>';
+        return '<figure class="mk-img">' + media + '<button type="button" class="mk-img-del" data-idel="' + i + '" aria-label="Remove">×</button><figcaption>' + esc(im.name || 'file') + '</figcaption></figure>'; }).join('') + '</div></div>';
   }
   h += '<div class="mk-f"><label for="i_note">Note</label><textarea id="i_note">' + esc(s.note) + '</textarea></div>';
   F.innerHTML = h;
@@ -2614,8 +2762,8 @@ function drawForm() {
   var persEl = $('i_persons'); if (persEl) persEl.oninput = function () { s.persons = persEl.value === '' ? null : parseInt(persEl.value, 10); markDirty(); renderLivePreview(); refreshEffortReadout(); };
   var phEl = $('i_phase'); if (phEl) phEl.onchange = function () { s.phase = phEl.value || ''; markDirty(); draw(); };
   function refreshEffortReadout() { var el = $('effortReadout'); if (!el) return; var n = Math.max(1, (s.persons != null && s.persons !== '') ? Number(s.persons) : (ownersOf(s.lane).length || 1));
-    el.innerHTML = (s.hoursPerPerson != null && s.hoursPerPerson !== '') ? n + ' người &times; ' + s.hoursPerPerson + 'h = <b>' + (n * s.hoursPerPerson) + 'h tổng công</b>' :
-      'Thời gian MỘT người bỏ ra cho bước này. Nhân với Số người để ra tổng công.'; }
+    el.innerHTML = (s.hoursPerPerson != null && s.hoursPerPerson !== '') ? n + ' people &times; ' + s.hoursPerPerson + 'h = <b>' + (n * s.hoursPerPerson) + 'h total effort</b>' :
+      'Hours ONE person spends on this step. Multiplied by the number of people for total effort.'; }
   var stakeEl = $('i_stake'); if (stakeEl) stakeEl.oninput = function () { s.stakeholderDetail = stakeEl.value; markDirty(); renderLivePreview(); };
   ['i_yes', 'i_no'].forEach(function (k) { var e = $(k); if (!e) return; e.onchange = function () { s.next = s.next || {}; s.next[k === 'i_yes' ? 'yes' : 'no'] = e.value || null; markDirty(); draw(); }; });
   F.querySelectorAll('[data-owner]').forEach(function (cb) { cb.onchange = function () {
@@ -2635,15 +2783,27 @@ function drawForm() {
     F.querySelectorAll('[data-fdel]').forEach(function (btn) { btn.onclick = function () { s.files.splice(+btn.getAttribute('data-fdel'), 1); markDirty(); drawForm(); }; });
     $('addFile').onclick = function () { s.files.push({ label: '', url: '' }); markDirty(); drawForm(); var rows = F.querySelectorAll('[data-flabel]'); if (rows.length) rows[rows.length - 1].focus(); };
     F.querySelectorAll('[data-idel]').forEach(function (btn) { btn.onclick = function () { s.images.splice(+btn.getAttribute('data-idel'), 1); markDirty(); drawForm(); }; });
-    $('addImg').onclick = function () {
-      var inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*,video/mp4'; inp.multiple = true;
-      inp.onchange = function () { var files = Array.prototype.slice.call(inp.files || []); if (files.length) addAttachments(s, files); };
-      inp.click(); };
-    var imgWrap = $('imgList'); if (imgWrap && imgWrap.parentElement) {
-      imgWrap.parentElement.addEventListener('paste', function (e) {
+    var drop = $('imgDrop');
+    if (drop) {
+      function browse() {
+        var inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*,video/mp4'; inp.multiple = true;
+        inp.onchange = function () { var files = Array.prototype.slice.call(inp.files || []); if (files.length) addAttachments(s, files); };
+        inp.click();
+      }
+      drop.onclick = browse;
+      drop.onkeydown = function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); browse(); } };
+      drop.addEventListener('dragover', function (e) { e.preventDefault(); drop.classList.add('is-over'); });
+      drop.addEventListener('dragleave', function () { drop.classList.remove('is-over'); });
+      drop.addEventListener('drop', function (e) { e.preventDefault(); drop.classList.remove('is-over');
+        var files = Array.prototype.slice.call((e.dataTransfer && e.dataTransfer.files) || []).filter(function (f) { return /^image\//.test(f.type) || /^video\/mp4/.test(f.type); });
+        if (files.length) addAttachments(s, files); });
+      /* paste a screenshot straight onto the zone (or anywhere in the form) */
+      function onPaste(e) {
         var items = (e.clipboardData || {}).items || [], picked = [];
         for (var i = 0; i < items.length; i++) { if (/^image\//.test(items[i].type)) { var f = items[i].getAsFile(); if (f) picked.push(f); } }
-        if (picked.length) { e.preventDefault(); addAttachments(s, picked); } });
+        if (picked.length) { e.preventDefault(); addAttachments(s, picked); }
+      }
+      drop.addEventListener('paste', onPaste);
     }
   }
   function bind(id, key, isLabel) { var e = $(id); if (!e) return; e.oninput = function () { s[key] = e.value; markDirty(); if (isLabel) { drawBanner(); drawDiagram(); redrawListLabels(); } renderLivePreview(); }; }
@@ -2657,10 +2817,10 @@ function addAttachments(s, files) {
   function done() { if (--pending <= 0) { markDirty(); drawForm(); } }
   files.forEach(function (file) {
     var isVid = /^video\//.test(file.type), max = isVid ? 50 * 1024 * 1024 : 8 * 1024 * 1024;
-    if (file.size > max) { Modal.alert('File quá lớn', '"' + file.name + '" vượt ' + (isVid ? '50MB' : '8MB') + '.'); done(); return; }
+    if (file.size > max) { Modal.alert('File too large', '"' + file.name + '" exceeds ' + (isVid ? '50MB' : '8MB') + '.'); done(); return; }
     if (useStore) {
       window.__uploadAttachment(file).then(function (a) { s.images.push({ name: a.name, src: a.url, type: a.type }); done(); })
-        .catch(function (e) { Modal.alert('Upload lỗi', String(e && e.message || e)); done(); });
+        .catch(function (e) { Modal.alert('Upload failed', String(e && e.message || e)); done(); });
     } else {
       var r = new FileReader(); r.onload = function () { s.images.push({ name: file.name.replace(/\.[^.]+$/, ''), src: String(r.result), type: file.type }); done(); }; r.readAsDataURL(file);
     }
@@ -2688,6 +2848,30 @@ var BRAND_COLORS = [
   ['#1591A6', 'Teal'], ['#2E4A2C', 'Dark green'], ['#5E9483', 'Sage'], ['#8A3B18', 'Brown'],
   ['#C57C1E', 'Amber'], ['#3D2436', 'Plum'], ['#B5567C', 'Rose'], ['#6B6656', 'Grey']
 ];
+/* Export an alignment document. PDF opens a clean print window (Save as PDF);
+   Word writes a .doc file the browser downloads, editable in Microsoft Word. */
+function exportAlignmentPDF(p) {
+  var w = window.open('', '_blank');
+  if (!w) { Modal.alert('Pop-up blocked', 'Please allow pop-ups for this site, then export again.'); return; }
+  var css = 'body{font-family:Georgia,"Century Std",serif;color:#1B2233;line-height:1.7;max-width:760px;margin:36px auto;padding:0 24px}' +
+    'h1{font-size:26px;color:#242F52;margin:0 0 4px}.sub{color:#5A6072;font-style:italic;margin:0 0 18px}' +
+    'h2,h3,h4{color:#242F52;line-height:1.25}img{max-width:100%;border-radius:6px}a{color:#1B57A6}' +
+    'table{border-collapse:collapse}td,th{border:1px solid #ccc;padding:6px 9px}';
+  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>' + esc(p.title || 'Alignment') + '</title><style>' + css + '</style></head><body>' +
+    '<h1>' + esc(p.title || '') + '</h1>' + (p.subtitle ? '<p class="sub">' + esc(p.subtitle) + '</p>' : '') +
+    '<div class="doc">' + (p.body || '') + '</div></body></html>');
+  w.document.close(); w.focus();
+  setTimeout(function () { try { w.print(); } catch (e) {} }, 350);
+}
+function exportAlignmentWord(p) {
+  var html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">' +
+    '<head><meta charset="utf-8"><title>' + esc(p.title || 'Alignment') + '</title></head><body>' +
+    '<h1 style="color:#242F52">' + esc(p.title || '') + '</h1>' + (p.subtitle ? '<p><i>' + esc(p.subtitle) + '</i></p>' : '') +
+    (p.body || '') + '</body></html>';
+  var blob = new Blob(['﻿' + html], { type: 'application/msword' });
+  var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = slug(p.title || 'alignment') + '.doc';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
 function wireRichToolbar(ed) {
   var bar = $('alToolbar');
   bar.onmousedown = function (e) { if (e.target.closest('[data-cmd],select,button,[data-color]')) e.preventDefault(); }; /* keep the text selection */
@@ -2727,6 +2911,13 @@ function wireRichToolbar(ed) {
       });
     });
   };
+  var exBtn = $('alExport'), exMenu = $('alExportMenu');
+  if (exBtn && exMenu) {
+    exBtn.onclick = function (e) { e.stopPropagation(); exMenu.hidden = !exMenu.hidden; };
+    exMenu.querySelectorAll('[data-exp]').forEach(function (b) { b.onclick = function () {
+      exMenu.hidden = true; if (b.getAttribute('data-exp') === 'pdf') exportAlignmentPDF(P); else exportAlignmentWord(P); }; });
+    document.addEventListener('click', function (e) { if (exMenu && !exMenu.hidden && (!e.target.closest || !e.target.closest('.al-export'))) exMenu.hidden = true; });
+  }
   $('alEmbed').onclick = function () {
     Modal.prompt('Embed a slide', 'Paste a Canva / Google Slides share link:', 'https://', function (url) {
       if (!url) return; ed.focus();
@@ -2749,6 +2940,9 @@ function wireEditorChrome() {
   $('backToView').onclick = function () {
     if (dirty) Modal.confirm('Leave without saving?', 'You have unsaved changes. Leaving keeps them only in this browser tab.', function () { backFromEditor(); }, { okLabel: 'Leave' });
     else backFromEditor(); };
+  var cbtn = $('csvBtn'); if (cbtn) cbtn.onclick = function () {
+    if (!P || kindOf(P) !== 'process') { Modal.alert('Export', 'Open a process to export it as a spreadsheet.'); return; }
+    downloadCSV(P); };
   $('pstatus').onchange = function () { if (P) { P.status = $('pstatus').value; markDirty(); if (kindOf(P) === 'process') drawBanner(); else updatePublishButton(); } };
   $('pkind').onchange = function () { if (!P) return; var k = $('pkind').value;
     if (k === kindOf(P)) return;
@@ -2779,7 +2973,7 @@ function wireEditorChrome() {
           to: P.reviewer, title: P.title, pillar: PILLAR_LABEL[P.pillar] || P.pillar, type: KIND_LABEL[kindOf(P)] || kindOf(P),
           pic: P.pic || '', reviewerName: nameFromEmail(P.reviewer), senderName: nameFromEmail(currentUser.email),
           senderEmail: currentUser.email, submittedAt: _sub, link: location.href.split('#')[0] });
-        Modal.alert('Sent for approval', 'Đã gửi cho <b>' + esc(P.reviewer) + '</b> để duyệt. Reviewer sẽ nhận email (CC lnd.edl@pizza4ps.com) và có thể Approve — hoặc Approve &amp; publish — từ trang tài liệu.');
+        Modal.alert('Sent for approval', 'Sent to <b>' + esc(displayName(P.reviewer)) + '</b> for approval. The reviewer gets an email (CC lnd.edl@pizza4ps.com) and can Approve — or Approve &amp; publish — from the document page.');
         backFromEditor();
       });
       return;
@@ -2877,12 +3071,12 @@ function drawAdmin() {
     if (!email) return; email = email.trim().toLowerCase();
     if (!/@pizza4ps\.com$/.test(email)) { Modal.alert('Not allowed', 'Only @pizza4ps.com email addresses can be added.'); return; }
     if (memberByEmail(email)) { Modal.alert('Already a member', email + ' is already on the list.'); return; }
-    Modal.choice('Role for ' + email, 'Tên hiển thị sẽ tự lấy từ email (sửa lại được sau). Chọn quyền khởi đầu:',
+    Modal.choice('Role for ' + email, 'The display name is taken from the email (you can edit it later). Pick a starting access level:',
       ROLES.filter(function (r) { return r !== 'Custom'; }).map(function (r) { return { label: r, value: r }; }), function (role) {
         if (!role) return;
         var nu = { email: email, name: nameFromEmail(email), role: role, admin: false, pillars: {}, items: {} };
         applyRolePreset(nu, role); MEMBERS.push(nu); adminSel = email; persistMembers(); wireRoleSwitch();
-        Modal.alert('Member added', 'Đã thêm <b>' + esc(email) + '</b> (' + esc(nameFromEmail(email)) + ') với quyền <b>' + esc(role) + '</b>. Người này đăng nhập bằng email công ty là vào được.');
+        Modal.alert('Member added', 'Added <b>' + esc(email) + '</b> (' + esc(nameFromEmail(email)) + ') with <b>' + esc(role) + '</b> access. They can sign in with their company email.');
         drawAdmin();
       });
   }); };
@@ -2929,34 +3123,39 @@ function wireBrand() {
   $('brandLink').onclick = function (ev) { ev.preventDefault(); goHome(); };
   $('adminLink').onclick = function (ev) { ev.preventDefault(); goAdmin(); };
 }
-var NOTIF_LABEL = { pending: '⏳ Waiting for approval', approved: '✓ Approved', published: '📣 Published' };
-var bellFilter = 'all', bellQuery = '', bellPic = '';
+var NOTIF_LABEL = { pending: '⏳ Waiting for approval', approved: '✓ Approved', published: '📣 Published', deleted: '🗑 Deleted', restored: '↩ Restored' };
+var bellFilter = 'all', bellQuery = '', bellPic = '', bellFilterOpen = false;
 function renderBellPanel() {
   var P2 = $('bellPanel');
   var q = bellQuery.trim().toLowerCase();
   var list = NOTIFS.filter(function (n) {
     if (bellFilter !== 'all' && n.type !== bellFilter) return false;
     if (bellPic && (n.pic || '') !== bellPic) return false;
-    if (q && (n.title || '').toLowerCase().indexOf(q) < 0 && (n.by || '').toLowerCase().indexOf(q) < 0) return false;
+    if (q && (n.title || '').toLowerCase().indexOf(q) < 0 && (n.by || '').toLowerCase().indexOf(q) < 0
+      && displayName(n.by).toLowerCase().indexOf(q) < 0) return false;
     return true;
   });
-  var chips = [['all', 'All'], ['pending', 'Waiting'], ['approved', 'Approved'], ['published', 'Published']].map(function (c) {
+  var active = (bellFilter !== 'all') || !!bellPic;
+  var chips = [['all', 'All'], ['pending', 'Waiting'], ['approved', 'Approved'], ['published', 'Published'], ['deleted', 'Deleted'], ['restored', 'Restored']].map(function (c) {
     return '<button class="hb-nfilter' + (bellFilter === c[0] ? ' hb-nfilter--on' : '') + '" data-nfilter="' + c[0] + '">' + c[1] + '</button>'; }).join('');
   var picSet = {}; NOTIFS.forEach(function (n) { if (n.pic) picSet[n.pic] = 1; });
-  var picOpts = '<option value="">Tất cả PIC</option>' + Object.keys(picSet).sort().map(function (pc) {
-    return '<option value="' + esc(pc) + '"' + (bellPic === pc ? ' selected' : '') + '>' + esc(pc) + '</option>'; }).join('');
+  var picOpts = '<option value="">All PIC</option>' + Object.keys(picSet).sort().map(function (pc) {
+    return '<option value="' + esc(pc) + '"' + (bellPic === pc ? ' selected' : '') + '>' + esc(displayName(pc)) + '</option>'; }).join('');
   P2.innerHTML = '<div class="hb-bellpanel__head">Notifications</div>' +
-    '<div class="hb-bellpanel__tools"><span class="mk-search mk-search--noti"><span class="mk-search__icon">' + SEARCH_SVG + '</span>' +
+    '<div class="hb-bellpanel__tools"><div style="display:flex;align-items:center;gap:8px">' +
+    '<span class="mk-search mk-search--noti"><span class="mk-search__icon">' + SEARCH_SVG + '</span>' +
     '<input id="notiSearch" placeholder="Search notifications…" value="' + esc(bellQuery) + '"></span>' +
-    '<select id="notiPic" class="hb-npic">' + picOpts + '</select>' +
-    '<div class="hb-nfilters">' + chips + '</div></div>' +
+    '<button class="hb-filterbtn' + (active || bellFilterOpen ? ' is-on' : '') + '" id="notiFilterBtn" title="Filter" aria-label="Filter">' + FILTER_SVG + '</button></div>' +
+    (bellFilterOpen ? '<div class="hb-nfilters">' + chips + '</div><select id="notiPic" class="hb-npic">' + picOpts + '</select>' : '') +
+    '</div>' +
     (list.length ? '<div class="hb-notiflist">' + list.slice(0, 60).map(function (n) {
       return '<button class="hb-notif" data-goto="' + esc(n.id) + '" data-pk="' + esc(n.pillar) + '">' +
-        '<span class="hb-notif__row"><span class="hb-notif__t hb-notif__t--' + n.type + '">' + NOTIF_LABEL[n.type] + '</span>' +
+        '<span class="hb-notif__row"><span class="hb-notif__t hb-notif__t--' + n.type + '">' + (NOTIF_LABEL[n.type] || n.type) + '</span>' +
         '<span class="hb-notif__date">' + fmtDate(n.at) + '</span></span>' +
         '<span class="hb-notif__title">' + esc(n.title) + '</span>' +
-        '<span class="hb-notif__meta">by ' + esc(n.by) + (n.pic ? ' · PIC: ' + esc(n.pic) : '') + '</span></button>'; }).join('') + '</div>'
-      : '<div class="hb-bellpanel__empty">' + (NOTIFS.length ? 'Nothing matches this filter.' : 'No notifications yet. You’ll see here when a document is sent for approval, approved, or published.') + '</div>');
+        '<span class="hb-notif__meta">by ' + esc(displayName(n.by)) + (n.pic ? ' · PIC: ' + esc(displayName(n.pic)) : '') + '</span></button>'; }).join('') + '</div>'
+      : '<div class="hb-bellpanel__empty">' + (NOTIFS.length ? 'Nothing matches this filter.' : 'No notifications yet. You’ll see here when a document is sent for approval, approved, published, deleted or restored.') + '</div>');
+  var fb = $('notiFilterBtn'); if (fb) fb.onclick = function (e) { e.stopPropagation(); bellFilterOpen = !bellFilterOpen; renderBellPanel(); };
   P2.querySelectorAll('[data-nfilter]').forEach(function (b) { b.onclick = function (e) { e.stopPropagation(); bellFilter = b.getAttribute('data-nfilter'); renderBellPanel(); }; });
   var np = $('notiPic'); if (np) { np.onclick = function (e) { e.stopPropagation(); }; np.onchange = function () { bellPic = np.value; renderBellPanel(); }; }
   var ns = $('notiSearch'); if (ns) { ns.onclick = function (e) { e.stopPropagation(); };
@@ -3018,13 +3217,13 @@ if (typeof GAS_MODE === 'undefined' || !GAS_MODE) bootApp();
   var $=function(id){return document.getElementById(id);};
   function statusOf(r){return r.archived?'archived':(r.published?'live':'draft');}
   function contentOf(p){var c={};for(var k in p){if(k!=='_history'&&k!=='_id')c[k]=p[k];}return c;}
-  function sig(p){return JSON.stringify([p.status,p.pillar,p.title,p.subtitle,p.pic,p.reviewer,p.review,contentOf(p)]);}
+  function sig(p){return JSON.stringify([p.status,p.pillar,p.title,p.subtitle,p.pic,p.reviewer,p.review,!!p.deleted,contentOf(p)]);}
   function editorFor(pillar){return !!(ME&&(ME.admin||(ME.pillars&&ME.pillars[pillar]==='edit')));}
   function mapRow(r){
     var editor=editorFor(r.pillar);
     var content=editor?(r.draft||r.published||r.data||{}):(r.published);
     if(!content)return null;
-    var p=Object.assign({},content,{process_id:r.process_id,kind:r.kind||'process',pillar:r.pillar,pic:r.pic||'',reviewer:r.reviewer||'',review:r.review||'none',createdBy:r.created_by||'',createdAt:r.created_at||'',updatedAt:r.updated_at||'',updatedBy:r.updated_by||'',reviewedBy:r.reviewed_by||'',reviewedAt:r.reviewed_at||'',status:statusOf(r),_id:r.id});
+    var p=Object.assign({},content,{process_id:r.process_id,kind:r.kind||'process',pillar:r.pillar,pic:r.pic||'',reviewer:r.reviewer||'',review:r.review||'none',createdBy:r.created_by||'',createdAt:r.created_at||'',updatedAt:r.updated_at||'',updatedBy:r.updated_by||'',reviewedBy:r.reviewed_by||'',reviewedAt:r.reviewed_at||'',deleted:!!r.deleted,deletedBy:r.deleted_by||'',deletedAt:r.deleted_at||'',status:statusOf(r),_id:r.id});
     p.title=content.title||r.title||''; p.subtitle=content.subtitle||r.subtitle||'';
     PUBLISHED[r.process_id]=r.published||null; DOCID[r.process_id]=r.id; return p;
   }
@@ -3036,7 +3235,8 @@ if (typeof GAS_MODE === 'undefined' || !GAS_MODE) bootApp();
     });
   }
   function supaAddNotif(n){
-    var act=(n.type==='pending'?'send_for_approval':(n.type==='approved'?'approve':'publish'));
+    var ACT={pending:'send_for_approval',approved:'approve',published:'publish',deleted:'delete',restored:'restore'};
+    var act=ACT[n.type]||'publish';
     return SB.from('notifications').insert({type:n.type,process_id:n.id,pillar:n.pillar,title:n.title,pic:n.pic||'',by_email:n.by,at:new Date().toISOString()}).then(function(res){
       SB.from('audit_log').insert({actor:n.by,action:act,process_id:n.id,title:n.title,detail:''});
       return {ok:!res.error};
@@ -3066,7 +3266,7 @@ if (typeof GAS_MODE === 'undefined' || !GAS_MODE) bootApp();
     return Promise.all(changed.map(function(p){
       var content=contentOf(p);
       var pub=(p.status==='live')?content:(PUBLISHED[p.process_id]||null);
-      var row={process_id:p.process_id,kind:p.kind||'process',pillar:p.pillar,title:p.title||'',subtitle:p.subtitle||'',status:p.status||'draft',pic:p.pic||'',reviewer:p.reviewer||'',review:p.review||'none',draft:content,published:pub,archived:(p.status==='archived'),updated_by:MYEMAIL,created_by:p.createdBy||MYEMAIL};
+      var row={process_id:p.process_id,kind:p.kind||'process',pillar:p.pillar,title:p.title||'',subtitle:p.subtitle||'',status:p.status||'draft',pic:p.pic||'',reviewer:p.reviewer||'',review:p.review||'none',draft:content,published:pub,archived:(p.status==='archived'),deleted:!!p.deleted,deleted_by:p.deletedBy||null,deleted_at:p.deletedAt||null,updated_by:MYEMAIL,created_by:p.createdBy||MYEMAIL};
       return SB.from('documents').upsert(row,{onConflict:'process_id'}).select().single().then(function(res){
         if(res.error)throw res.error; var s=res.data; PUBLISHED[p.process_id]=s.published; ORIG[p.process_id]=sig(p);
         return SB.from('document_versions').insert({document_id:s.id,snapshot:s,message:msg||'Cập nhật',changed_by:MYEMAIL}).then(function(){
@@ -3120,7 +3320,7 @@ if (typeof GAS_MODE === 'undefined' || !GAS_MODE) bootApp();
   function start(){
     SB.auth.getUser().then(function(res){
       var u=res.data&&res.data.user;
-      if(res.error||!u){gate('gateLogin');return;}
+      if(res.error||!u){gate('gateLogin');try{var _last=localStorage.getItem('edl_last_email');if(_last&&$('loginEmail')&&!$('loginEmail').value)$('loginEmail').value=_last;}catch(e){}return;}
       MYEMAIL=(u.email||(u.user_metadata&&u.user_metadata.email)||'').toLowerCase();
       SB.rpc('whoami').then(function(r){
         if(r.error||!r.data){$('naEmail').textContent=MYEMAIL||'(không đọc được email)';gate('gateNoAccess');return;}
@@ -3135,14 +3335,15 @@ if (typeof GAS_MODE === 'undefined' || !GAS_MODE) bootApp();
     });
   }
   SB.auth.onAuthStateChange(function(evt){if(evt==='SIGNED_IN'&&!booted)start();});
-  $('emailBtn').onclick=function(){var em=($('loginEmail').value||'').trim().toLowerCase();if(!em){$('loginErr').textContent='Nhập email đã nhé';return;}
-    $('loginErr').textContent='';$('emailBtn').disabled=true;$('emailBtn').textContent='Đang kiểm tra…';
+  $('emailBtn').onclick=function(){var em=($('loginEmail').value||'').trim().toLowerCase();if(!em){$('loginErr').textContent='Please enter your email.';return;}
+    $('loginErr').textContent='';$('emailBtn').disabled=true;$('emailBtn').textContent='Checking…';
     SB.rpc('is_allowed_email',{p_email:em}).then(function(chk){
-      if(chk.error){$('emailBtn').disabled=false;$('emailBtn').textContent='Gửi link đăng nhập';$('loginErr').textContent=chk.error.message;return;}
-      if(!chk.data){$('emailBtn').disabled=false;$('emailBtn').textContent='Gửi link đăng nhập';$('loginErr').innerHTML='Chưa có quyền truy cập. Vui lòng liên hệ L&amp;D Team (lnd@pizza4ps.com) để được hỗ trợ.';return;}
-      $('emailBtn').textContent='Đang gửi…';
+      if(chk.error){$('emailBtn').disabled=false;$('emailBtn').textContent='Send me a sign-in link';$('loginErr').textContent=chk.error.message;return;}
+      if(!chk.data){$('emailBtn').disabled=false;$('emailBtn').textContent='Send me a sign-in link';$('loginErr').innerHTML='No access yet. Please contact the L&amp;D Team (lnd@pizza4ps.com) for support.';return;}
+      try{localStorage.setItem('edl_last_email',em);}catch(e){}
+      $('emailBtn').textContent='Sending…';
       SB.auth.signInWithOtp({email:em,options:{emailRedirectTo:location.href.split('#')[0]}}).then(function(r){
-        $('emailBtn').disabled=false;$('emailBtn').textContent='Gửi link đăng nhập';
+        $('emailBtn').disabled=false;$('emailBtn').textContent='Send me a sign-in link';
         if(r.error){$('loginErr').textContent=r.error.message;return;}$('loginForm').hidden=true;$('loginSent').hidden=false;});
     });};
   $('naSignout').onclick=function(){SB.auth.signOut().then(function(){location.href=location.href.split('#')[0];});};
