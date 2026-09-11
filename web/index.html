@@ -15,6 +15,7 @@
 .sb-gate button.ghost{background:transparent;color:#242F52;border:1px solid #D2CFC4}
 .sb-err{color:#B23A3A;font-size:13px;margin-top:8px}
 </style>
+<style>.dg-node-badge{font-size:13px!important;font-weight:700!important;padding:3px 8px!important;min-width:24px;height:auto!important;border-radius:8px!important;line-height:1.3!important}.pillar-guide{--p-accent:#242F52;--p-text:#242F52}.hb-notiflist{max-height:52vh;overflow:auto}.hb-notif__row{display:flex;align-items:center;justify-content:space-between;gap:8px}.hb-notif__date{color:#7A8199;font-size:11px;white-space:nowrap}.hb-npic{margin:2px 0 6px;font-size:12px;padding:5px 7px;border:1px solid #D2CFC4;border-radius:8px;width:100%}.hb-bellpanel__head{position:sticky;top:0;background:#fff;z-index:3}.hb-bellpanel__tools{position:sticky;top:34px;background:#fff;z-index:2}.mk-step-move{border:1px solid #D2CFC4;background:#fff;border-radius:6px;width:22px;height:22px;font-size:9px;color:#4A5268;margin-left:4px;cursor:pointer;flex:0 0 auto}.mk-req{color:#B23A3A}.dg-phase{position:absolute;border-left:3px solid #242F52;background:rgba(36,47,82,.06);border-radius:6px;display:flex;align-items:center;justify-content:center;z-index:0;pointer-events:none}.dg-phase span{writing-mode:vertical-rl;transform:rotate(180deg);font-weight:700;font-size:12px;color:#242F52;letter-spacing:.1em;text-transform:uppercase}</style>
 <title>EDL Internal Handbook</title>
 <style>
 /* ==========================================================================
@@ -1122,7 +1123,7 @@ textarea{resize:vertical;min-height:60px;line-height:1.5}
       </div>
       <div class="mk-col mk-col--form">
         <div style="display:flex;align-items:center;justify-content:space-between"><h2 class="mk-h2">Step details</h2>
-          <button class="mk-btn" id="csvBtn" style="font-size:11px;padding:5px 10px" title="Download this whole process as a spreadsheet">&#8681; Export CSV</button></div>
+          <button class="mk-btn" id="csvBtn" style="font-size:11px;padding:5px 10px" title="Download this whole process as a spreadsheet">&#8681; Export Excel</button></div>
         <div id="form"></div>
         <div class="mk-preview-label" style="margin-top:18px">Preview on the website</div>
         <div id="livePreview"></div>
@@ -1272,6 +1273,10 @@ var MARK_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABDgAAAM7CAYAA
     var back = findBackEdges(steps, byId, startId);
     var depth = assignDepth(steps, byId, back, startId);
 
+    var PHASES_ORDER = ['Before', 'During', 'After'];
+    var hasPhase = steps.some(function (s) { return s.phase; });
+    var PHASE_W = hasPhase ? 92 : 0;
+
     var laneNames = spec.lanes.filter(function (L) {
       return steps.some(function (s) { return s.lane === L; });
     });
@@ -1288,7 +1293,7 @@ var MARK_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABDgAAAM7CAYAA
       laneNodeW[s.lane] = Math.max(laneNodeW[s.lane] || 0, w);
     });
 
-    var lanes = [], left = CANVAS_PAD;
+    var lanes = [], left = CANVAS_PAD + PHASE_W;
     laneNames.forEach(function (L) {
       var slots = maxSlots[L] || 1, w = laneNodeW[L] || NODE_W;
       var width = slots * w + (slots - 1) * COL_GAP + LANE_PAD * 2;
@@ -1329,6 +1334,17 @@ var MARK_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABDgAAAM7CAYAA
     });
     var pos = {}; nodes.forEach(function (n) { pos[n.id] = n; });
 
+    var phases = [];
+    if (hasPhase) {
+      PHASES_ORDER.forEach(function (ph) {
+        var ns = nodes.filter(function (n) { return (n.detail && n.detail.phase) === ph; });
+        if (!ns.length) return;
+        var top = Math.min.apply(null, ns.map(function (n) { return n.y; }));
+        var bot = Math.max.apply(null, ns.map(function (n) { return n.y + n.h; }));
+        phases.push({ label: ph, top: top - 6, bottom: bot + 6 });
+      });
+    }
+
     /* Connectors run top-to-bottom. Back edges (the "No" arrows that revisit
        an earlier row) are routed through a reserved channel to the right of
        every lane, since letting them cut back through the diagram itself is
@@ -1368,6 +1384,7 @@ var MARK_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABDgAAAM7CAYAA
     return {
       title: spec.title, subtitle: spec.subtitle,
       lanes: lanes, nodes: nodes, connections: conns,
+      phases: phases, phaseW: PHASE_W,
       canvas: { width: width, height: height }
     };
   }
@@ -1468,6 +1485,19 @@ var MARK_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABDgAAAM7CAYAA
       }
     });
 
+    if (g.phases && g.phases.length) {
+      g.phases.forEach(function (ph) {
+        var band = document.createElement('div');
+        band.className = 'dg-phase';
+        band.style.left = '8px';
+        band.style.width = ((g.phaseW || 80) - 14) + 'px';
+        band.style.top = ph.top + 'px';
+        band.style.height = (ph.bottom - ph.top) + 'px';
+        band.innerHTML = '<span>' + esc(ph.label) + '</span>';
+        canvas.appendChild(band);
+      });
+    }
+
     var zoom = document.createElement('div');
     zoom.className = 'dg-zoom-layer';
     zoom.appendChild(canvas);
@@ -1494,7 +1524,7 @@ var MARK_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABDgAAAM7CAYAA
         var l = g.lanes[i];
         lab.style.left = (l.left * scale) + 'px';
         lab.style.width = (l.width * scale) + 'px';
-        lab.style.fontSize = Math.max(7, 9.5 * scale) + 'px';
+        lab.style.fontSize = Math.max(10, 14 * scale) + 'px';
       });
     }
     fitScale = computeFit();
@@ -1615,9 +1645,13 @@ var PILLARS = [
   { key: 'elearning', label: 'E-learning' },
   { key: 'data', label: 'Data' },
   { key: 'logistics', label: 'Logistics' },
-  { key: 'training', label: 'Training' }
+  { key: 'training', label: 'Training' },
+  { key: 'guide', label: 'Hướng dẫn' }
 ];
 var PILLAR_LABEL = {}; PILLARS.forEach(function (p) { PILLAR_LABEL[p.key] = p.label; });
+/* Derive a display name from an email local part: nguyen.che -> "Nguyen Che". */
+function nameFromEmail(e) { if (!e) return ''; return String(e).split('@')[0].split(/[._-]+/).filter(Boolean)
+  .map(function (w) { return w.charAt(0).toUpperCase() + w.slice(1); }).join(' '); }
 
 var KIND_LABEL = { process: 'Process', alignment: 'Alignment' };
 var KIND_PLURAL = { process: 'Processes', alignment: 'Alignments' };
@@ -1654,6 +1688,7 @@ function memberByEmail(e) { for (var i = 0; i < MEMBERS.length; i++) if (MEMBERS
 function accessLevelFor(u, item) {
   if (!u) return 'none';
   if (u.admin) return 'edit';
+  if (item.pillar === 'guide') return 'view';   /* Guide pillar is readable by every member */
   var lvl = (u.pillars && u.pillars[item.pillar]) || 'none';
   if (u.items && u.items[item.process_id]) lvl = u.items[item.process_id];  /* exception wins */
   return lvl;
@@ -1682,7 +1717,8 @@ function canSee(item) {
 var LOGO_SRC = (typeof MARK_DATA_URI !== 'undefined' && MARK_DATA_URI) ? MARK_DATA_URI : '';
 
 var P = null, sel = null, dirty = false, dgHandle = null, siteHandle = null;
-var homeSearch = '', homeMode = 'pillar', pillarSearch = {}, picOpen = {};
+var homeSearch = '', homeMode = 'pillar', pillarSearch = {}, picOpen = {}, homePicFilter = '';
+function visibleHome(p) { return canSee(p) && (!homePicFilter || (p.pic || '') === homePicFilter); }
 var view = { level: 'home', pillar: null, proc: null };
 var returnTo = null;
 
@@ -1707,22 +1743,34 @@ function fmtDate(iso) {
 function snapshotOf(p) { var c = {}; for (var k in p) { if (k !== '_history') c[k] = p[k]; } return JSON.stringify(c); }
 function pushHistory(p, summary) { p._history = p._history || []; p._history.unshift({ at: todayISO(), by: currentUser.email, summary: summary || 'Updated', snap: snapshotOf(p) }); }
 function openHistory(p) {
-  var h = p._history || [];
+  if (typeof GAS_MODE !== 'undefined' && GAS_MODE) {
+    google.script.run.withSuccessHandler(function (rows) { showHistory(p, rows || []); })
+      .withFailureHandler(function (e) { Modal.alert('Edit history', 'Không tải được lịch sử: ' + (e && e.message || e)); })
+      .getHistory(p.process_id);
+  } else { showHistory(p, p._history || []); }
+}
+function showHistory(p, h) {
   if (!h.length) { Modal.alert('Edit history', 'No saved versions yet. Each Save / Publish adds a version here, so you can restore an earlier one.'); return; }
   Modal.choice('Edit history — ' + esc(p.title), 'The top entry is the current version. Pick an earlier one to restore (' + h.length + ' saved, newest first).',
-    h.map(function (v, i) { return { label: fmtDate(v.at) + ' · ' + v.by + ' — ' + v.summary + (i === 0 ? '  ·  CURRENT' : ''), value: String(i) }; }), function (idx) {
-      if (idx === null || idx === '') return; var v = h[+idx];
+    h.map(function (v, i) { return { label: fmtDate(v.at) + ' · ' + (v.by || '') + ' — ' + (v.summary || '') + (i === 0 ? '  ·  CURRENT' : ''), value: String(i) }; }), function (idx) {
+      if (idx === null || idx === '') return;
       if (+idx === 0) { Modal.alert('Already current', 'That is the version currently shown — nothing to restore.'); return; }
-      Modal.confirm('Restore this version?', 'From ' + fmtDate(v.at) + ' by ' + esc(v.by) + '. The current content will be replaced by this version.', function () {
-        var snap = JSON.parse(v.snap); for (var k in snap) { p[k] = snap[k]; } render();
-        Modal.alert('Restored', 'Restored the version from ' + fmtDate(v.at) + '. (mockup — publish it to make it live.)');
+      var v = h[+idx];
+      Modal.confirm('Restore this version?', 'From ' + fmtDate(v.at) + ' by ' + esc(v.by || '') + '. The current content will be replaced by this version.', function () {
+        var snap = v.snap ? (typeof v.snap === 'string' ? JSON.parse(v.snap) : v.snap) : null;
+        if (snap) { for (var k in snap) { p[k] = snap[k]; } render();
+          Modal.alert('Restored', 'Đã nạp bản từ ' + fmtDate(v.at) + '. Bấm Save/Publish để lưu lại.'); }
       }, { okLabel: 'Restore' });
     });
 }
 
 /* --- notifications (bell) --- */
 var NOTIFS = [], bellSeen = 0;
-function addNotif(type, p) { NOTIFS.unshift({ type: type, id: p.process_id, pillar: p.pillar, title: p.title, by: currentUser.email, at: todayISO() }); updateBell(); }
+function addNotif(type, p) {
+  var n = { type: type, id: p.process_id, pillar: p.pillar, title: p.title, pic: p.pic || '', by: currentUser.email, at: todayISO() };
+  NOTIFS.unshift(n); updateBell();
+  if (typeof GAS_MODE !== 'undefined' && GAS_MODE) { try { google.script.run.withFailureHandler(function () {}).addNotif(n); } catch (e) {} }
+}
 function updateBell() { var b = $('bellBadge'); if (!b) return; var n = NOTIFS.length - bellSeen; if (n > 0) { b.textContent = n > 9 ? '9+' : n; b.hidden = false; } else b.hidden = true; }
 
 function processTotals(p) {
@@ -1853,9 +1901,11 @@ function renderDetailCard(step) {
   if (showDays) sub.push(esc(step.workingDays) + ' working day' + (step.workingDays == 1 ? '' : 's'));
   if (showEffort) sub.push(ownerN + ' &times; ' + esc(step.hoursPerPerson) + 'h = ' + (ownerN * step.hoursPerPerson) + 'h total effort');
   var images = (step.images || []).filter(function (im) { return im && im.src; });
-  var imgHtml = images.length ? '<div class="dp-images"><span class="dp-images__label">Guide images</span>' +
+  var imgHtml = images.length ? '<div class="dp-images"><span class="dp-images__label">Guide images / video</span>' +
     '<div class="dp-images__grid">' + images.map(function (im) {
-      return '<figure class="dp-img"><img src="' + esc(im.src) + '" alt="' + esc(im.name || 'step image') + '" loading="lazy" data-zoom="1">' +
+      var isVid = /^video\//.test(im.type || '') || /\.mp4($|\?)/i.test(im.src || '');
+      var media = isVid ? '<video src="' + esc(im.src) + '" controls style="max-width:100%;border-radius:8px"></video>' : '<img src="' + esc(im.src) + '" alt="' + esc(im.name || 'step image') + '" loading="lazy" data-zoom="1">';
+      return '<figure class="dp-img">' + media +
         (im.name ? '<figcaption>' + esc(im.name) + '</figcaption>' : '') + '</figure>';
     }).join('') + '</div><div class="dp-images__hint">Click an image to enlarge</div></div>' : '';
   return '<div class="dp dp--active">' +
@@ -1930,17 +1980,38 @@ function processToCSV(proc) {
   });
   return lines.join('\r\n');
 }
+/* -------- Excel (.xlsx) import / export -------- */
+var XLSX_COLS = ['step_id', 'lane', 'type', 'label', 'task', 'timeline', 'next', 'yes', 'no', 'note', 'working_days', 'persons', 'hours_per_person'];
+function processToAOA(proc) {
+  var aoa = [XLSX_COLS];
+  (proc.steps || []).forEach(function (s) {
+    var next = '', yes = '', no = '';
+    if (s.type === 'decision') { yes = (s.next && s.next.yes) || ''; no = (s.next && s.next.no) || ''; }
+    else next = (Array.isArray(s.next) ? s.next.join(',') : (s.next || ''));
+    aoa.push([s.id, s.lane || '', s.type || 'action', s.label || '', s.task || '', s.timeline || '', next, yes, no, s.note || '',
+      s.workingDays == null ? '' : s.workingDays, s.persons == null ? '' : s.persons, s.hoursPerPerson == null ? '' : s.hoursPerPerson]);
+  });
+  return aoa;
+}
+function saveWorkbook(aoa, filename) {
+  if (window.XLSX) {
+    var ws = XLSX.utils.aoa_to_sheet(aoa), wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Steps'); XLSX.writeFile(wb, filename + '.xlsx');
+  } else {
+    var csv = aoa.map(function (r) { return r.map(csvCell).join(','); }).join('\r\n');
+    var blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename + '.csv';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  }
+}
 function downloadCSVTemplate() {
-  var rows = [ CSV_COLUMNS,
-    ['1', 'Start', 'start', 'Intern', '', '', 'Do the first thing', '', '', ''],
-    ['2', 'Do the first thing', 'action', 'Intern', '1st - 2nd of each month', '1', 'Review it', 'Describe what happens here.', '', ''],
-    ['3', 'Review', 'decision', 'TPM', '', '', 'If approved: Send it; If rejected: Do the first thing', 'What is being checked.', '', ''],
-    ['4', 'Send it', 'action', 'Intern', '3rd', '0.5', 'End', 'Describe what happens here.', '', ''],
-    ['5', 'End', 'end', 'Intern', '', '', '', '', '', ''] ];
-  var sample = rows.map(function (r) { return r.map(csvCell).join(','); }).join('\r\n');
-  var blob = new Blob([sample], { type: 'text/csv;charset=utf-8;' });
-  var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'process-template.csv';
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  saveWorkbook([XLSX_COLS,
+    ['start', 'Intern', 'start', 'Bắt đầu', '', '', 'collect', '', '', '', '', '', ''],
+    ['collect', 'Intern', 'action', 'Thu thập dữ liệu', 'Mô tả việc cần làm', '15–20 hằng tháng', 'review', '', '', 'Ghi chú', '1', '1', '2'],
+    ['review', 'TPM', 'decision', 'Duyệt nội dung', '', '', '', 'publish', 'collect', 'Có→publish; Không→collect', '1', '1', '1'],
+    ['publish', 'Intern', 'action', 'Đăng thông báo', 'Gửi email & đăng nhóm', 'cuối tháng', 'end', '', '', '', '1', '1', '1'],
+    ['end', 'Intern', 'end', 'Kết thúc', '', '', '', '', '', '', '', '', '']
+  ], 'process-template');
 }
 function parseCSV(text) {
   var rows = [], row = [], field = '', inQ = false;
@@ -1957,53 +2028,50 @@ function parseCSV(text) {
 }
 function importCSV(pillarKey) {
   var input = document.createElement('input');
-  input.type = 'file'; input.accept = '.csv,text/csv';
+  input.type = 'file'; input.accept = '.xlsx,.csv';
   input.onchange = function () {
     var file = input.files[0]; if (!file) return;
-    var reader = new FileReader();
+    var isCsv = /\.csv$/i.test(file.name), reader = new FileReader();
     reader.onload = function () {
-      var rows = parseCSV(String(reader.result));
-      if (rows.length < 2) { Modal.alert('Nothing to import', 'That file doesn’t look like a filled-in template.'); return; }
-      var body = rows.slice(1).filter(function (r) { return r.some(Boolean); });
-      var byLabel = {};
-      var steps = body.map(function (r, i) {
-        var id = slug(r[1] || 'step_' + (i + 1));
-        var taken = byLabel[id]; byLabel[id] = (taken || 0) + 1; if (taken) id += '_' + taken;
-        return { _row: r, id: id, label: r[1] || '', type: (r[2] || 'action').trim(), lane: r[3] || 'Intern', timeline: r[4] || '',
-          workingDays: r[5] === '' || r[5] == null ? null : parseFloat(r[5]), _nextRaw: r[6] || '', task: r[7] || '',
-          files: (r[8] || '').split(';').map(function (x) { return x.trim(); }).filter(Boolean).map(function (x) {
-            var m = x.match(/^(.*)\s\((https?:\/\/[^\)]+)\)$/); return m ? { label: m[1], url: m[2] } : { label: x, url: '' }; }),
-          images: [], note: r[9] || '' };
-      });
-      var byLabelToId = {}; steps.forEach(function (s) { byLabelToId[s.label.toLowerCase()] = s.id; });
-      steps.forEach(function (s) {
-        if (s.type === 'decision') {
-          var yes = s._nextRaw.match(/if approved:\s*([^;]+)/i), no = s._nextRaw.match(/if rejected:\s*([^;]+)/i);
-          s.next = { yes: yes ? byLabelToId[yes[1].trim().toLowerCase()] || null : null, no: no ? byLabelToId[no[1].trim().toLowerCase()] || null : null };
-        } else if (s.type === 'end') s.next = [];
-        else s.next = s._nextRaw.split(';').map(function (x) { return byLabelToId[x.trim().toLowerCase()]; }).filter(Boolean);
-        delete s._row; delete s._nextRaw;
+      var aoa;
+      try {
+        if (window.XLSX) { var wb = isCsv ? XLSX.read(reader.result, { type: 'string' }) : XLSX.read(new Uint8Array(reader.result), { type: 'array' });
+          aoa = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1 }); }
+        else aoa = parseCSV(String(reader.result));
+      } catch (e) { Modal.alert('Không đọc được file', String(e && e.message || e)); return; }
+      if (!aoa || aoa.length < 2) { Modal.alert('Nothing to import', 'File chưa có bước nào.'); return; }
+      var header = (aoa[0] || []).map(function (x) { return String(x == null ? '' : x).trim().toLowerCase(); });
+      function col(n) { return header.indexOf(n); }
+      var ci = { id: col('step_id'), lane: col('lane'), type: col('type'), label: col('label'), task: col('task'), timeline: col('timeline'),
+        next: col('next'), yes: col('yes'), no: col('no'), note: col('note'), days: col('working_days'), persons: col('persons'), hours: col('hours_per_person') };
+      var body = aoa.slice(1).filter(function (r) { return r && r.some(function (x) { return String(x == null ? '' : x).trim(); }); });
+      var seen = {};
+      var steps = body.map(function (r) {
+        function g(i) { return i >= 0 ? String(r[i] == null ? '' : r[i]).trim() : ''; }
+        var type = (g(ci.type) || 'action').toLowerCase(), id = slug(g(ci.id) || g(ci.label) || 'step');
+        if (seen[id]) { var k = 2; while (seen[id + '_' + k]) k++; id = id + '_' + k; } seen[id] = 1;
+        var st = { id: id, lane: g(ci.lane) || 'Intern', type: type, label: g(ci.label), task: g(ci.task), timeline: g(ci.timeline), note: g(ci.note), files: [], images: [],
+          workingDays: g(ci.days) === '' ? null : parseFloat(g(ci.days)), persons: g(ci.persons) === '' ? null : parseInt(g(ci.persons), 10), hoursPerPerson: g(ci.hours) === '' ? null : parseFloat(g(ci.hours)) };
+        if (type === 'decision') st.next = { yes: g(ci.yes) ? slug(g(ci.yes)) : null, no: g(ci.no) ? slug(g(ci.no)) : null };
+        else if (type === 'end') st.next = [];
+        else st.next = g(ci.next).split(',').map(function (x) { return slug(x.trim()); }).filter(Boolean);
+        return st;
       });
       var owners = []; steps.forEach(function (s) { ownersOf(s.lane).forEach(function (o) { if (owners.indexOf(o) < 0) owners.push(o); }); });
-      var title = 'Imported process'; var m = /^(.*)\.csv$/i.exec(file.name); if (m) title = m[1].replace(/[_-]+/g, ' ');
+      var title = 'Imported process', m = /^(.*)\.(xlsx|csv)$/i.exec(file.name); if (m) title = m[1].replace(/[_-]+/g, ' ');
       var id = slug(title), taken2 = {}, k = 2, base = id;
       DOC.processes.forEach(function (p) { taken2[p.process_id] = 1; }); while (taken2[id]) id = base + '_' + (k++);
       DOC.processes.push({ process_id: id, title: title, subtitle: '', status: 'draft', pillar: pillarKey, kind: 'process',
         pic: currentUser.email, updatedAt: todayISO(), createdBy: currentUser.email, lanes: owners.slice(),
         owners: ['TPM', 'Intern', 'EDL', 'L&D Head', 'Stakeholders'], steps: steps });
-      Modal.alert('Imported — please review', 'Created "' + title + '" as a draft under ' + PILLAR_LABEL[pillarKey] +
-        '. Check every step before publishing — nothing is live yet.');
+      Modal.alert('Imported — please review', 'Đã tạo "' + title + '" dạng nháp trong ' + PILLAR_LABEL[pillarKey] + '. Kiểm tra các bước trước khi xuất bản.');
       openEditor(id);
     };
-    reader.readAsText(file);
+    if (isCsv || !window.XLSX) reader.readAsText(file, 'UTF-8'); else reader.readAsArrayBuffer(file);
   };
   input.click();
 }
-function downloadCSV(proc) {
-  var blob = new Blob([processToCSV(proc)], { type: 'text/csv;charset=utf-8;' });
-  var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = slug(proc.title) + '.csv';
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-}
+function downloadCSV(proc) { saveWorkbook(processToAOA(proc), slug(proc.title || 'process')); }
 
 /* --------------------------------------------------------------- validate */
 function validate() {
@@ -2024,6 +2092,11 @@ function validate() {
     t.forEach(function (x) { if (!ids[x]) e.push('Step "' + s.label + '" points to a step that no longer exists.'); });
     if (!s.label || !s.label.trim()) e.push('One step has no name.');
     if (!s.lane || !s.lane.trim()) e.push('Step "' + s.label + '" has nobody assigned to it.');
+    if (s.type === 'action' || s.type === 'decision') {
+      if (s.workingDays == null || s.workingDays === '') e.push('Step "' + s.label + '" thiếu Working days.');
+      if (s.persons == null || s.persons === '') e.push('Step "' + s.label + '" thiếu Số người.');
+      if (s.hoursPerPerson == null || s.hoursPerPerson === '') e.push('Step "' + s.label + '" thiếu Hours per person.');
+    }
     (s.files || []).forEach(function (f) { if (f.url && !looksLikeUrl(f.url)) e.push('"' + (f.label || 'A file') + '" has a link that doesn’t look like a real URL.'); });
   });
   return e;
@@ -2120,15 +2193,22 @@ function drawHome() {
     bodyHtml = '<section class="toc-section"><h2 class="pl-group__title">Results<span class="pl-group__count">' + results.length + '</span></h2>' +
       (results.length ? '<div class="toc-grid">' + results.map(itemCard).join('') + '</div>' : '<p class="pl-empty">Nothing matches “' + esc(q) + '”.</p>') + '</section>';
   } else {
-    var seg = '<div class="hb-seg" role="group" aria-label="Group by">' +
+    var picSet = {}; DOC.processes.forEach(function (p) { if (canSee(p) && p.pic) picSet[p.pic] = 1; });
+    var picOpts = '<option value="">Tất cả PIC</option>' + Object.keys(picSet).sort().map(function (pc) {
+      return '<option value="' + esc(pc) + '"' + (homePicFilter === pc ? ' selected' : '') + '>' + esc(pc) + '</option>'; }).join('');
+    var seg = '<div class="hb-segrow" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px">' +
+      '<div class="hb-seg" role="group" aria-label="Group by">' +
       '<button data-mode="pillar" aria-pressed="' + (homeMode === 'pillar') + '">By pillar</button>' +
-      '<button data-mode="pic" aria-pressed="' + (homeMode === 'pic') + '">By PIC</button></div>';
-    bodyHtml = '<section class="toc-section">' + seg + (homeMode === 'pillar' ? homeByPillar() : homeByPIC()) + '</section>';
+      '<button data-mode="role" aria-pressed="' + (homeMode === 'role') + '">By Role</button></div>' +
+      '<div style="flex:1"></div>' +
+      '<label class="mk-hint" style="display:flex;align-items:center;gap:6px">Lọc PIC <select id="homePicFilter">' + picOpts + '</select></label></div>';
+    bodyHtml = '<section class="toc-section">' + seg + (homeMode === 'pillar' ? homeByPillar() : homeByRole()) + '</section>';
   }
   S.innerHTML = head + bodyHtml;
 
   var si = $('homeSearchInput');
   si.oninput = function () { homeSearch = si.value; drawHome(); var m = $('homeSearchInput'); m.focus(); m.setSelectionRange(m.value.length, m.value.length); };
+  var pf = $('homePicFilter'); if (pf) pf.onchange = function () { homePicFilter = pf.value; drawHome(); };
   S.querySelectorAll('[data-mode]').forEach(function (b) { b.onclick = function () { homeMode = b.getAttribute('data-mode'); drawHome(); }; });
   S.querySelectorAll('[data-pillar]').forEach(function (b) { b.onclick = function () { goPillar(b.getAttribute('data-pillar')); }; });
   S.querySelectorAll('[data-picgroup]').forEach(function (b) { b.onclick = function () {
@@ -2137,7 +2217,7 @@ function drawHome() {
 }
 function homeByPillar() {
   return '<div class="toc-grid toc-grid--pillars">' + PILLARS.map(function (pl) {
-    var mine = DOC.processes.filter(function (p) { return p.pillar === pl.key && canSee(p); });
+    var mine = DOC.processes.filter(function (p) { return p.pillar === pl.key && visibleHome(p); });
     var procs = mine.filter(function (p) { return kindOf(p) === 'process'; }).length;
     var aligns = mine.filter(function (p) { return kindOf(p) === 'alignment'; }).length;
     var canEdit = canCreateIn(pl.key);
@@ -2147,6 +2227,29 @@ function homeByPillar() {
       '<div class="toc-card__meta"><span>' + procs + ' process' + (procs === 1 ? '' : 'es') + '</span>' +
       '<span>' + aligns + ' alignment' + (aligns === 1 ? '' : 's') + '</span></div></button>';
   }).join('') + '</div>';
+}
+function homeByRole() {
+  var ROLE_ORDER = ['L&D Head', 'EDL', 'TPM', 'Intern'];
+  var groups = {}, order = [];
+  DOC.processes.forEach(function (p) { if (!visibleHome(p)) return;
+    var m = memberByEmail(p.pic || ''); var k = (m && m.role) ? m.role : '(No role)';
+    if (!groups[k]) { groups[k] = []; order.push(k); }
+    groups[k].push(p);
+  });
+  if (!order.length) return '<p class="pl-empty">Nothing to show.</p>';
+  order.sort(function (a, b) { var ia = ROLE_ORDER.indexOf(a), ib = ROLE_ORDER.indexOf(b);
+    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || a.localeCompare(b); });
+  var CHEV = '<svg class="pic-chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8l4 4 4-4"/></svg>';
+  return '<p class="pl-empty" style="font-style:normal;margin-bottom:14px">Nhóm theo vai trò của PIC.</p>' + order.map(function (role) {
+    var open = picOpen['role:' + role] === true;
+    return '<div class="pic-group">' +
+      '<button class="pic-group__head" data-picgroup="role:' + esc(role) + '" aria-expanded="' + open + '">' + CHEV +
+      '<span class="pic-avatar">' + esc((role[0] || '?').toUpperCase()) + '</span>' +
+      '<span class="pic-group__col"><span class="pic-group__name">' + esc(role) + '</span></span>' +
+      '<span class="pl-group__count">' + groups[role].length + '</span></button>' +
+      (open ? '<div class="toc-grid" style="margin-top:12px">' + groups[role].map(itemCard).join('') + '</div>' : '') +
+      '</div>';
+  }).join('');
 }
 function homeByPIC() {
   var groups = {}, order = [];
@@ -2183,7 +2286,7 @@ function drawPillar() {
     '<span class="mk-search"><span class="mk-search__icon">' + SEARCH_SVG + '</span>' +
     '<input id="pillarSearchInput" placeholder="Search ' + esc(label) + '…" value="' + esc(pillarSearch[key] || '') + '"></span>' +
     '<span class="pl-tools__spacer"></span>';
-  if (edit) tools += '<button class="mk-btn" id="importCsvBtn">&#8679; Import CSV</button>' +
+  if (edit) tools += '<button class="mk-btn" id="importCsvBtn">&#8679; Import Excel</button>' +
     '<button class="mk-btn mk-btn--primary" id="newProcBtn">+ New</button>' +
     '<a href="#" class="pl-tools__tmpl" id="dlTemplate">Download template</a>';
   else tools += '<span class="pl-tools__ro">' + LOCK + 'View only in ' + esc(label) + '</span>';
@@ -2267,10 +2370,11 @@ function heroFor(p, flowLabelHtml) {
     '<h1 class="hb-h1">' + esc(p.title) + '</h1>' +
     '<p class="hb-lede">' + esc(p.subtitle || '') + '</p>' +
     (flowLabelHtml || '') +
-    '<p class="proc-hero__by">' + (p.pic ? 'PIC: <b>' + esc(p.pic) + '</b> · ' : '') +
-      (p.updatedAt ? 'Updated on ' + fmtDate(p.updatedAt) : '') +
-      (p.updatedBy ? ' by ' + esc(p.updatedBy) : '') +
-      (p.createdBy ? ' · Created by ' + esc(p.createdBy) : '') + '</p></section>';
+    '<p class="proc-hero__by">' + (p.pic ? 'PIC: <b>' + esc(p.pic) + '</b>' : '') +
+      (p.updatedBy ? ' · Updated by ' + esc(p.updatedBy) + (p.updatedAt ? ' on ' + fmtDate(p.updatedAt) : '') : '') +
+      (p.createdBy ? ' · Created by ' + esc(p.createdBy) + (p.createdAt ? ' on ' + fmtDate(p.createdAt) : '') : '') +
+      (p.reviewedBy ? ' · Reviewed by ' + esc(p.reviewedBy) + (p.reviewedAt ? ' on ' + fmtDate(p.reviewedAt) : '') : '') +
+      '</p></section>';
 }
 function wireItemHeader(p) {
   var e = $('editProcBtn'); if (e) e.onclick = function () { openEditor(p.process_id); };
@@ -2353,6 +2457,7 @@ function drawEditor() {
 function drawEditorBar() {
   $('procBarTitle').innerHTML = '<span class="kind-tag kind-tag--' + kindOf(P) + '">' + KIND_LABEL[kindOf(P)] + '</span> ' + esc(P.title);
   $('pkind').value = kindOf(P);
+  $('pkind').disabled = true;            // Type is fixed once chosen at creation
   $('pstatus').innerHTML = STATUSES.map(function (s) { return '<option value="' + s + '"' + (P.status === s ? ' selected' : '') + '>' + s + '</option>'; }).join('');
   var picSel = $('ppic');
   picSel.innerHTML = '<option value="">— none —</option>' + MEMBERS.map(function (m) {
@@ -2380,6 +2485,11 @@ function draw() {
     b.innerHTML = '<span class="mk-step-num">' + (i + 1) + '</span><i class="mk-dot"></i><span><b>' + esc(s.label || '(untitled)') + '</b><em>' + esc(s.lane || '—') + '</em></span>';
     b.onclick = function () { selectStep(s.id); };
     row.appendChild(b);
+    var up = document.createElement('button'); up.type = 'button'; up.className = 'mk-step-move'; up.title = 'Move up'; up.textContent = '▲';
+    up.onclick = function (ev) { ev.stopPropagation(); moveStep(s.id, -1); };
+    var dn = document.createElement('button'); dn.type = 'button'; dn.className = 'mk-step-move'; dn.title = 'Move down'; dn.textContent = '▼';
+    dn.onclick = function (ev) { ev.stopPropagation(); moveStep(s.id, 1); };
+    row.appendChild(up); row.appendChild(dn);
     var del = document.createElement('button');
     del.type = 'button'; del.className = 'mk-step-del'; del.title = 'Delete this step';
     del.setAttribute('aria-label', 'Delete "' + esc(s.label || s.id) + '"'); del.textContent = '×';
@@ -2387,6 +2497,15 @@ function draw() {
     row.appendChild(del); L.appendChild(row);
   });
   drawBanner(); drawDiagram(); drawForm();
+}
+function moveStep(id, dir) {
+  var ord = orderedSteps(), idx = -1;
+  ord.forEach(function (s, i) { if (s.id === id) idx = i; });
+  var tgt = ord[idx + dir]; if (idx < 0 || !tgt) return;
+  var ai = P.steps.indexOf(ord[idx]), bi = P.steps.indexOf(tgt);
+  if (ai < 0 || bi < 0) return;
+  var tmp = P.steps[ai]; P.steps[ai] = P.steps[bi]; P.steps[bi] = tmp;
+  markDirty(); draw();
 }
 function removeStep(id) {
   var s = P.steps.filter(function (x) { return x.id === id; })[0]; if (!s) return;
@@ -2461,11 +2580,16 @@ function drawForm() {
   var isMarker = (s.type === 'start' || s.type === 'end');
   if (!isMarker) {
     h += '<div class="mk-f"><label for="i_timeline">Timeline</label><input id="i_timeline" value="' + esc(s.timeline) + '"></div>';
-    h += '<div class="mk-f"><label for="i_days">Working days</label><input id="i_days" type="number" min="0" step="0.5" value="' + esc(s.workingDays == null ? '' : s.workingDays) + '" placeholder="e.g. 2"><div class="mk-tip">Calendar time this step takes — added up for total lead time.</div></div>';
-    var ownerCount = Math.max(1, ticked.length);
-    h += '<div class="mk-f"><label for="i_hours">Hours per person</label><input id="i_hours" type="number" min="0" step="0.5" value="' + esc(s.hoursPerPerson == null ? '' : s.hoursPerPerson) + '" placeholder="e.g. 2"><div class="mk-tip" id="effortReadout">' +
-      (s.hoursPerPerson != null && s.hoursPerPerson !== '' ? ownerCount + ' ' + (ownerCount === 1 ? 'person' : 'people') + ' &times; ' + s.hoursPerPerson + 'h each = <b>' + (ownerCount * s.hoursPerPerson) + 'h total effort</b>' :
-        'How long ONE person spends on it. With ' + ownerCount + ' ' + (ownerCount === 1 ? 'person' : 'people') + ' on this step, total effort is worked out for you.') + '</div></div>';
+    h += '<div class="mk-f"><label for="i_phase">Phase (nhóm giai đoạn)</label><select id="i_phase"><option value="">— none —</option>' +
+      ['Before', 'During', 'After'].map(function (ph) { return '<option value="' + ph + '"' + (s.phase === ph ? ' selected' : '') + '>' + ph + '</option>'; }).join('') +
+      '</select><div class="mk-tip">Gom các bước thành dải Before / During / After ở bên trái sơ đồ.</div></div>';
+    var reqE = (s.type === 'action' || s.type === 'decision') ? req : '';
+    h += '<div class="mk-f"><label for="i_days">Working days' + reqE + '</label><input id="i_days" type="number" min="0" step="0.5" value="' + esc(s.workingDays == null ? '' : s.workingDays) + '" placeholder="e.g. 2"><div class="mk-tip">Calendar time this step takes — added up for total lead time.</div></div>';
+    h += '<div class="mk-f"><label for="i_persons">Số người (People on this step)' + reqE + '</label><input id="i_persons" type="number" min="1" step="1" value="' + esc(s.persons == null ? '' : s.persons) + '" placeholder="e.g. 1"></div>';
+    var pc = Math.max(1, (s.persons != null && s.persons !== '') ? Number(s.persons) : (ticked.length || 1));
+    h += '<div class="mk-f"><label for="i_hours">Hours per person' + reqE + '</label><input id="i_hours" type="number" min="0" step="0.5" value="' + esc(s.hoursPerPerson == null ? '' : s.hoursPerPerson) + '" placeholder="e.g. 2"><div class="mk-tip" id="effortReadout">' +
+      (s.hoursPerPerson != null && s.hoursPerPerson !== '' ? pc + ' người &times; ' + s.hoursPerPerson + 'h = <b>' + (pc * s.hoursPerPerson) + 'h tổng công</b>' :
+        'Thời gian MỘT người bỏ ra cho bước này. Nhân với Số người để ra tổng công.') + '</div></div>';
     s.files = s.files || [];
     h += '<div class="mk-f"><label>Attach related files / links</label><div id="fileList">' + s.files.map(function (f, i) {
       var bad = f.url && !looksLikeUrl(f.url);
@@ -2474,10 +2598,12 @@ function drawForm() {
         '<button type="button" class="mk-file-del" data-fdel="' + i + '" aria-label="Remove">×</button></div>' + (bad ? '<div class="mk-file-err">Doesn’t look like a link — start with https://</div>' : ''); }).join('') + '</div>' +
       '<button type="button" class="mk-btn" id="addFile" style="width:100%">+ Add file or link</button></div>';
     s.images = s.images || [];
-    h += '<div class="mk-f"><label>Attach guide images</label><div class="mk-tip" style="margin-top:0;margin-bottom:7px">Screenshots or photos that show how to do this step. They preview inside the page — nobody has to download them.</div>' +
+    h += '<div class="mk-f"><label>Đính kèm ảnh / video hướng dẫn</label><div class="mk-tip" style="margin-top:0;margin-bottom:7px">Ảnh (PNG/JPG/GIF) hoặc video MP4. Có thể <b>dán trực tiếp (Ctrl+V)</b> ảnh chụp màn hình. Hiển thị ngay trong trang.</div>' +
       '<div id="imgList" class="mk-imgs">' + s.images.map(function (im, i) {
-        return '<figure class="mk-img"><img src="' + esc(im.src) + '" alt="' + esc(im.name || '') + '"><button type="button" class="mk-img-del" data-idel="' + i + '" aria-label="Remove image">×</button><figcaption>' + esc(im.name || 'image') + '</figcaption></figure>'; }).join('') + '</div>' +
-      '<button type="button" class="mk-btn" id="addImg" style="width:100%">+ Add image</button></div>';
+        var isVid = /^video\//.test(im.type || '') || /\.mp4($|\?)/i.test(im.src || '');
+        var media = isVid ? '<video src="' + esc(im.src) + '" controls style="max-width:100%;border-radius:6px"></video>' : '<img src="' + esc(im.src) + '" alt="' + esc(im.name || '') + '">';
+        return '<figure class="mk-img">' + media + '<button type="button" class="mk-img-del" data-idel="' + i + '" aria-label="Remove">×</button><figcaption>' + esc(im.name || 'file') + '</figcaption></figure>'; }).join('') + '</div>' +
+      '<button type="button" class="mk-btn" id="addImg" style="width:100%">+ Thêm ảnh / video</button></div>';
   }
   h += '<div class="mk-f"><label for="i_note">Note</label><textarea id="i_note">' + esc(s.note) + '</textarea></div>';
   F.innerHTML = h;
@@ -2485,9 +2611,11 @@ function drawForm() {
   bind('i_label', 'label', true); bind('i_task', 'task'); bind('i_timeline', 'timeline');
   var daysEl = $('i_days'); if (daysEl) daysEl.oninput = function () { s.workingDays = daysEl.value === '' ? null : parseFloat(daysEl.value); markDirty(); renderLivePreview(); };
   var hoursEl = $('i_hours'); if (hoursEl) hoursEl.oninput = function () { s.hoursPerPerson = hoursEl.value === '' ? null : parseFloat(hoursEl.value); markDirty(); renderLivePreview(); refreshEffortReadout(); };
-  function refreshEffortReadout() { var el = $('effortReadout'); if (!el) return; var n = Math.max(1, ownersOf(s.lane).length);
-    el.innerHTML = (s.hoursPerPerson != null && s.hoursPerPerson !== '') ? n + ' ' + (n === 1 ? 'person' : 'people') + ' &times; ' + s.hoursPerPerson + 'h each = <b>' + (n * s.hoursPerPerson) + 'h total effort</b>' :
-      'How long ONE person spends on it. With ' + n + ' ' + (n === 1 ? 'person' : 'people') + ' on this step, total effort is worked out for you.'; }
+  var persEl = $('i_persons'); if (persEl) persEl.oninput = function () { s.persons = persEl.value === '' ? null : parseInt(persEl.value, 10); markDirty(); renderLivePreview(); refreshEffortReadout(); };
+  var phEl = $('i_phase'); if (phEl) phEl.onchange = function () { s.phase = phEl.value || ''; markDirty(); draw(); };
+  function refreshEffortReadout() { var el = $('effortReadout'); if (!el) return; var n = Math.max(1, (s.persons != null && s.persons !== '') ? Number(s.persons) : (ownersOf(s.lane).length || 1));
+    el.innerHTML = (s.hoursPerPerson != null && s.hoursPerPerson !== '') ? n + ' người &times; ' + s.hoursPerPerson + 'h = <b>' + (n * s.hoursPerPerson) + 'h tổng công</b>' :
+      'Thời gian MỘT người bỏ ra cho bước này. Nhân với Số người để ra tổng công.'; }
   var stakeEl = $('i_stake'); if (stakeEl) stakeEl.oninput = function () { s.stakeholderDetail = stakeEl.value; markDirty(); renderLivePreview(); };
   ['i_yes', 'i_no'].forEach(function (k) { var e = $(k); if (!e) return; e.onchange = function () { s.next = s.next || {}; s.next[k === 'i_yes' ? 'yes' : 'no'] = e.value || null; markDirty(); draw(); }; });
   F.querySelectorAll('[data-owner]').forEach(function (cb) { cb.onchange = function () {
@@ -2508,16 +2636,35 @@ function drawForm() {
     $('addFile').onclick = function () { s.files.push({ label: '', url: '' }); markDirty(); drawForm(); var rows = F.querySelectorAll('[data-flabel]'); if (rows.length) rows[rows.length - 1].focus(); };
     F.querySelectorAll('[data-idel]').forEach(function (btn) { btn.onclick = function () { s.images.splice(+btn.getAttribute('data-idel'), 1); markDirty(); drawForm(); }; });
     $('addImg').onclick = function () {
-      var inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.multiple = true;
-      inp.onchange = function () { var files = Array.prototype.slice.call(inp.files || []); if (!files.length) return; var pending = files.length;
-        files.forEach(function (file) {
-          if (file.size > 3 * 1024 * 1024) { Modal.alert('Image too large', '"' + file.name + '" is over 3 MB. Please use a smaller screenshot.'); if (--pending === 0) { markDirty(); drawForm(); } return; }
-          var r = new FileReader(); r.onload = function () { s.images.push({ name: file.name.replace(/\.[^.]+$/, ''), src: String(r.result) }); if (--pending === 0) { markDirty(); drawForm(); } }; r.readAsDataURL(file); }); };
+      var inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*,video/mp4'; inp.multiple = true;
+      inp.onchange = function () { var files = Array.prototype.slice.call(inp.files || []); if (files.length) addAttachments(s, files); };
       inp.click(); };
+    var imgWrap = $('imgList'); if (imgWrap && imgWrap.parentElement) {
+      imgWrap.parentElement.addEventListener('paste', function (e) {
+        var items = (e.clipboardData || {}).items || [], picked = [];
+        for (var i = 0; i < items.length; i++) { if (/^image\//.test(items[i].type)) { var f = items[i].getAsFile(); if (f) picked.push(f); } }
+        if (picked.length) { e.preventDefault(); addAttachments(s, picked); } });
+    }
   }
   function bind(id, key, isLabel) { var e = $(id); if (!e) return; e.oninput = function () { s[key] = e.value; markDirty(); if (isLabel) { drawBanner(); drawDiagram(); redrawListLabels(); } renderLivePreview(); }; }
   renderLivePreview();
   function renderLivePreview() { $('livePreview').innerHTML = renderDetailCard(s); }
+}
+function addAttachments(s, files) {
+  s.images = s.images || [];
+  var useStore = (typeof GAS_MODE !== 'undefined' && GAS_MODE && typeof window.__uploadAttachment === 'function');
+  var pending = files.length;
+  function done() { if (--pending <= 0) { markDirty(); drawForm(); } }
+  files.forEach(function (file) {
+    var isVid = /^video\//.test(file.type), max = isVid ? 50 * 1024 * 1024 : 8 * 1024 * 1024;
+    if (file.size > max) { Modal.alert('File quá lớn', '"' + file.name + '" vượt ' + (isVid ? '50MB' : '8MB') + '.'); done(); return; }
+    if (useStore) {
+      window.__uploadAttachment(file).then(function (a) { s.images.push({ name: a.name, src: a.url, type: a.type }); done(); })
+        .catch(function (e) { Modal.alert('Upload lỗi', String(e && e.message || e)); done(); });
+    } else {
+      var r = new FileReader(); r.onload = function () { s.images.push({ name: file.name.replace(/\.[^.]+$/, ''), src: String(r.result), type: file.type }); done(); }; r.readAsDataURL(file);
+    }
+  });
 }
 function redrawListLabels() {
   var ordered = orderedSteps();
@@ -2627,14 +2774,21 @@ function wireEditorChrome() {
         if (!ok) { P.review = pr; P.updatedAt = pu; P.updatedBy = pb; Modal.alert('Could not send', errText(r)); return; }
         dirty = false;
         pushHistory(P, 'Sent for approval'); addNotif('pending', P); notifyServer('Submitted for approval', P);
-        Modal.alert('Sent for approval', 'Sent to <b>' + esc(P.reviewer) + '</b> to review. They’ll get a Google&nbsp;Chat notification (on the real site) and can Approve — or Approve &amp; publish — from this item’s page.');
+        var _n = new Date(), _sub = ('0' + _n.getDate()).slice(-2) + '/' + ('0' + (_n.getMonth() + 1)).slice(-2) + '/' + _n.getFullYear() + ' ' + ('0' + _n.getHours()).slice(-2) + ':' + ('0' + _n.getMinutes()).slice(-2);
+        if (typeof window.__sendApprovalEmail === 'function') window.__sendApprovalEmail({
+          to: P.reviewer, title: P.title, pillar: PILLAR_LABEL[P.pillar] || P.pillar, type: KIND_LABEL[kindOf(P)] || kindOf(P),
+          pic: P.pic || '', reviewerName: nameFromEmail(P.reviewer), senderName: nameFromEmail(currentUser.email),
+          senderEmail: currentUser.email, submittedAt: _sub, link: location.href.split('#')[0] });
+        Modal.alert('Sent for approval', 'Đã gửi cho <b>' + esc(P.reviewer) + '</b> để duyệt. Reviewer sẽ nhận email (CC lnd.edl@pizza4ps.com) và có thể Approve — hoặc Approve &amp; publish — từ trang tài liệu.');
         backFromEditor();
       });
       return;
     }
     if (kindOf(P) === 'process') { var e = validate(); if (e.length) { Modal.alert('Fix these first', e.map(esc).join('<br>')); return; } }
     var verb = saveVerb();
-    Modal.prompt(verb, 'Short description of what you changed (saved to the edit history):', 'Update ' + (P.title || P.process_id), function (m) {
+    var _d = new Date(), _ymd = String(_d.getFullYear()).slice(2) + ('0' + (_d.getMonth() + 1)).slice(-2) + ('0' + _d.getDate()).slice(-2);
+    var _tag = (P.status === 'draft') ? '(Draft) ' : '(Live) ';
+    Modal.prompt(verb, 'Short description of what you changed (saved to the edit history):', _tag + _ymd + '_' + (P.title || P.process_id), function (m) {
       if (m === null) return;
       $('pub').disabled = true; $('pub').textContent = verb + '…';
       var live = P.status === 'live';
@@ -2723,16 +2877,14 @@ function drawAdmin() {
     if (!email) return; email = email.trim().toLowerCase();
     if (!/@pizza4ps\.com$/.test(email)) { Modal.alert('Not allowed', 'Only @pizza4ps.com email addresses can be added.'); return; }
     if (memberByEmail(email)) { Modal.alert('Already a member', email + ' is already on the list.'); return; }
-    Modal.prompt('Add member', 'Display name:', email.split('@')[0], function (nm) {
-      Modal.choice('Role for ' + email, 'This sets their starting access (you can fine-tune it after).',
-        ROLES.filter(function (r) { return r !== 'Custom'; }).map(function (r) { return { label: r, value: r }; }), function (role) {
-          if (!role) return;
-          var nu = { email: email, name: (nm || email.split('@')[0]).trim(), role: role, admin: false, pillars: {}, items: {} };
-          applyRolePreset(nu, role); MEMBERS.push(nu); adminSel = email; persistMembers(); wireRoleSwitch();
-          Modal.alert('Member added', 'Added <b>' + esc(email) + '</b> as <b>' + esc(role) + '</b>. On the real site they get an email invite with the link, and access works as soon as they sign in with their @pizza4ps.com account.');
-          drawAdmin();
-        });
-    });
+    Modal.choice('Role for ' + email, 'Tên hiển thị sẽ tự lấy từ email (sửa lại được sau). Chọn quyền khởi đầu:',
+      ROLES.filter(function (r) { return r !== 'Custom'; }).map(function (r) { return { label: r, value: r }; }), function (role) {
+        if (!role) return;
+        var nu = { email: email, name: nameFromEmail(email), role: role, admin: false, pillars: {}, items: {} };
+        applyRolePreset(nu, role); MEMBERS.push(nu); adminSel = email; persistMembers(); wireRoleSwitch();
+        Modal.alert('Member added', 'Đã thêm <b>' + esc(email) + '</b> (' + esc(nameFromEmail(email)) + ') với quyền <b>' + esc(role) + '</b>. Người này đăng nhập bằng email công ty là vào được.');
+        drawAdmin();
+      });
   }); };
   var rm = $('admRemove'); if (rm) rm.onclick = function () { Modal.confirm('Remove member?', esc(m.email) + ' will lose all access.', function () {
     MEMBERS = MEMBERS.filter(function (u) { return u.email !== m.email; }); adminSel = MEMBERS[0] && MEMBERS[0].email; persistMembers(); wireRoleSwitch(); drawAdmin(); }, { danger: true, okLabel: 'Remove' }); };
@@ -2778,28 +2930,35 @@ function wireBrand() {
   $('adminLink').onclick = function (ev) { ev.preventDefault(); goAdmin(); };
 }
 var NOTIF_LABEL = { pending: '⏳ Waiting for approval', approved: '✓ Approved', published: '📣 Published' };
-var bellFilter = 'all', bellQuery = '';
+var bellFilter = 'all', bellQuery = '', bellPic = '';
 function renderBellPanel() {
   var P2 = $('bellPanel');
   var q = bellQuery.trim().toLowerCase();
   var list = NOTIFS.filter(function (n) {
     if (bellFilter !== 'all' && n.type !== bellFilter) return false;
+    if (bellPic && (n.pic || '') !== bellPic) return false;
     if (q && (n.title || '').toLowerCase().indexOf(q) < 0 && (n.by || '').toLowerCase().indexOf(q) < 0) return false;
     return true;
   });
   var chips = [['all', 'All'], ['pending', 'Waiting'], ['approved', 'Approved'], ['published', 'Published']].map(function (c) {
     return '<button class="hb-nfilter' + (bellFilter === c[0] ? ' hb-nfilter--on' : '') + '" data-nfilter="' + c[0] + '">' + c[1] + '</button>'; }).join('');
+  var picSet = {}; NOTIFS.forEach(function (n) { if (n.pic) picSet[n.pic] = 1; });
+  var picOpts = '<option value="">Tất cả PIC</option>' + Object.keys(picSet).sort().map(function (pc) {
+    return '<option value="' + esc(pc) + '"' + (bellPic === pc ? ' selected' : '') + '>' + esc(pc) + '</option>'; }).join('');
   P2.innerHTML = '<div class="hb-bellpanel__head">Notifications</div>' +
     '<div class="hb-bellpanel__tools"><span class="mk-search mk-search--noti"><span class="mk-search__icon">' + SEARCH_SVG + '</span>' +
     '<input id="notiSearch" placeholder="Search notifications…" value="' + esc(bellQuery) + '"></span>' +
+    '<select id="notiPic" class="hb-npic">' + picOpts + '</select>' +
     '<div class="hb-nfilters">' + chips + '</div></div>' +
-    (list.length ? list.slice(0, 40).map(function (n) {
+    (list.length ? '<div class="hb-notiflist">' + list.slice(0, 60).map(function (n) {
       return '<button class="hb-notif" data-goto="' + esc(n.id) + '" data-pk="' + esc(n.pillar) + '">' +
-        '<span class="hb-notif__t hb-notif__t--' + n.type + '">' + NOTIF_LABEL[n.type] + '</span>' +
+        '<span class="hb-notif__row"><span class="hb-notif__t hb-notif__t--' + n.type + '">' + NOTIF_LABEL[n.type] + '</span>' +
+        '<span class="hb-notif__date">' + fmtDate(n.at) + '</span></span>' +
         '<span class="hb-notif__title">' + esc(n.title) + '</span>' +
-        '<span class="hb-notif__meta">by ' + esc(n.by) + ' · ' + fmtDate(n.at) + '</span></button>'; }).join('')
+        '<span class="hb-notif__meta">by ' + esc(n.by) + (n.pic ? ' · PIC: ' + esc(n.pic) : '') + '</span></button>'; }).join('') + '</div>'
       : '<div class="hb-bellpanel__empty">' + (NOTIFS.length ? 'Nothing matches this filter.' : 'No notifications yet. You’ll see here when a document is sent for approval, approved, or published.') + '</div>');
   P2.querySelectorAll('[data-nfilter]').forEach(function (b) { b.onclick = function (e) { e.stopPropagation(); bellFilter = b.getAttribute('data-nfilter'); renderBellPanel(); }; });
+  var np = $('notiPic'); if (np) { np.onclick = function (e) { e.stopPropagation(); }; np.onchange = function () { bellPic = np.value; renderBellPanel(); }; }
   var ns = $('notiSearch'); if (ns) { ns.onclick = function (e) { e.stopPropagation(); };
     ns.oninput = function () { bellQuery = ns.value; renderBellPanel(); var m = $('notiSearch'); m.focus(); m.setSelectionRange(m.value.length, m.value.length); }; }
   P2.querySelectorAll('[data-goto]').forEach(function (b) { b.onclick = function () {
@@ -2812,16 +2971,12 @@ function wireBell() {
   document.addEventListener('click', function (e) { if (!e.target.closest('#bellPanel') && !e.target.closest('#bellBtn')) $('bellPanel').hidden = true; });
   updateBell();
 }
-/* seed a little history + a couple of notifications so the features aren't empty on first load */
+/* Real history + notifications come from the server. On the standalone mockup
+   only, seed a minimal client history so History isn't empty. */
 function seedActivity() {
-  DOC.processes.forEach(function (p) { if (!p._history) p._history = [{ at: p.updatedAt, by: p.updatedBy || p.createdBy || '', summary: 'Initial version', snap: snapshotOf(p) }]; });
-  var fs = DOC.processes.filter(function (p) { return p.process_id === 'food-safety-mgmt'; })[0];
-  if (fs) { fs.review = 'pending'; fs.reviewer = 'yen.tran@pizza4ps.com'; }
-  function seedN(type, id, by, at) { var p = DOC.processes.filter(function (x) { return x.process_id === id; })[0];
-    if (p) NOTIFS.push({ type: type, id: id, pillar: p.pillar, title: p.title, by: by, at: at }); }
-  seedN('pending', 'food-safety-mgmt', 'hoa.doan@pizza4ps.com', '2026-09-06');
-  seedN('published', 'monthly-training-calendar', 'phuong.ntl@pizza4ps.com', '2026-08-20');
-  seedN('approved', 'train-the-trainer', 'yen.tran@pizza4ps.com', '2026-08-10');
+  if (typeof GAS_MODE === 'undefined' || !GAS_MODE) {
+    DOC.processes.forEach(function (p) { if (!p._history) p._history = [{ at: p.updatedAt, by: p.updatedBy || p.createdBy || '', summary: 'Initial version', snap: snapshotOf(p) }]; });
+  }
 }
 
 window.addEventListener('resize', function () {
@@ -2859,7 +3014,7 @@ if (typeof GAS_MODE === 'undefined' || !GAS_MODE) bootApp();
 
 <script>
 (function(){
-  var SB=null,MYEMAIL='',ME=null,PUBLISHED={},ORIG={};
+  var SB=null,MYEMAIL='',ME=null,PUBLISHED={},ORIG={},DOCID={};
   var $=function(id){return document.getElementById(id);};
   function statusOf(r){return r.archived?'archived':(r.published?'live':'draft');}
   function contentOf(p){var c={};for(var k in p){if(k!=='_history'&&k!=='_id')c[k]=p[k];}return c;}
@@ -2869,9 +3024,23 @@ if (typeof GAS_MODE === 'undefined' || !GAS_MODE) bootApp();
     var editor=editorFor(r.pillar);
     var content=editor?(r.draft||r.published||r.data||{}):(r.published);
     if(!content)return null;
-    var p=Object.assign({},content,{process_id:r.process_id,kind:r.kind||'process',pillar:r.pillar,pic:r.pic||'',reviewer:r.reviewer||'',review:r.review||'none',createdBy:r.created_by||'',updatedAt:r.updated_at||'',updatedBy:r.updated_by||'',status:statusOf(r)});
+    var p=Object.assign({},content,{process_id:r.process_id,kind:r.kind||'process',pillar:r.pillar,pic:r.pic||'',reviewer:r.reviewer||'',review:r.review||'none',createdBy:r.created_by||'',createdAt:r.created_at||'',updatedAt:r.updated_at||'',updatedBy:r.updated_by||'',reviewedBy:r.reviewed_by||'',reviewedAt:r.reviewed_at||'',status:statusOf(r),_id:r.id});
     p.title=content.title||r.title||''; p.subtitle=content.subtitle||r.subtitle||'';
-    PUBLISHED[r.process_id]=r.published||null; return p;
+    PUBLISHED[r.process_id]=r.published||null; DOCID[r.process_id]=r.id; return p;
+  }
+  function supaHistory(pid){
+    var id=DOCID[pid]; if(!id)return Promise.resolve([]);
+    return SB.from('document_versions').select('changed_at,changed_by,message,snapshot').eq('document_id',id).order('changed_at',{ascending:false}).then(function(res){
+      if(res.error)throw res.error;
+      return (res.data||[]).map(function(v){var snap=v.snapshot||{}; return {at:v.changed_at,by:v.changed_by,summary:v.message,snap:(snap.draft||snap.data||snap)};});
+    });
+  }
+  function supaAddNotif(n){
+    var act=(n.type==='pending'?'send_for_approval':(n.type==='approved'?'approve':'publish'));
+    return SB.from('notifications').insert({type:n.type,process_id:n.id,pillar:n.pillar,title:n.title,pic:n.pic||'',by_email:n.by,at:new Date().toISOString()}).then(function(res){
+      SB.from('audit_log').insert({actor:n.by,action:act,process_id:n.id,title:n.title,detail:''});
+      return {ok:!res.error};
+    });
   }
   function supaLoad(){
     return SB.from('documents').select('*').then(function(res){
@@ -2881,7 +3050,13 @@ if (typeof GAS_MODE === 'undefined' || !GAS_MODE) bootApp();
       return SB.from('members').select('*').then(function(m){
         var members=(m&&m.data&&m.data.length)?m.data:[];
         if(ME&&!members.some(function(x){return (x.email||'').toLowerCase()===MYEMAIL;})) members=[ME].concat(members);
-        return {ok:true,data:{processes:procs},members:members,userEmail:MYEMAIL};
+        return SB.from('notifications').select('type,process_id,pillar,title,pic,by_email,at').order('at',{ascending:false}).limit(300).then(function(nn){
+          var notifs=(nn&&nn.data?nn.data:[]).map(function(x){return {type:x.type,id:x.process_id,pillar:x.pillar,title:x.title,pic:x.pic,by:x.by_email,at:x.at};});
+          return SB.from('app_config').select('key,value').then(function(cc){
+            var cfg={}; (cc&&cc.data?cc.data:[]).forEach(function(r){cfg[r.key]=r.value;});
+            return {ok:true,data:{processes:procs},members:members,notifications:notifs,config:cfg,userEmail:MYEMAIL};
+          });
+        });
       });
     });
   }
@@ -2894,7 +3069,9 @@ if (typeof GAS_MODE === 'undefined' || !GAS_MODE) bootApp();
       var row={process_id:p.process_id,kind:p.kind||'process',pillar:p.pillar,title:p.title||'',subtitle:p.subtitle||'',status:p.status||'draft',pic:p.pic||'',reviewer:p.reviewer||'',review:p.review||'none',draft:content,published:pub,archived:(p.status==='archived'),updated_by:MYEMAIL,created_by:p.createdBy||MYEMAIL};
       return SB.from('documents').upsert(row,{onConflict:'process_id'}).select().single().then(function(res){
         if(res.error)throw res.error; var s=res.data; PUBLISHED[p.process_id]=s.published; ORIG[p.process_id]=sig(p);
-        return SB.from('document_versions').insert({document_id:s.id,snapshot:s,message:msg||'Cập nhật',changed_by:MYEMAIL});
+        return SB.from('document_versions').insert({document_id:s.id,snapshot:s,message:msg||'Cập nhật',changed_by:MYEMAIL}).then(function(){
+          return SB.from('audit_log').insert({actor:MYEMAIL,action:(p.status==='live'?'publish':'save'),process_id:p.process_id,title:p.title,detail:msg||''});
+        });
       });
     })).then(function(){return {ok:true};}).catch(function(e){return {ok:false,errors:[e.message||String(e)]};});
   }
@@ -2908,9 +3085,34 @@ if (typeof GAS_MODE === 'undefined' || !GAS_MODE) bootApp();
     loadData:function(){supaLoad().then(function(r){s&&s(r);}).catch(function(e){f&&f(e);});},
     saveData:function(a,b){supaSave(a,b).then(function(r){s&&s(r);}).catch(function(e){f&&f(e);});},
     saveMembers:function(m){supaMembers(m).then(function(r){s&&s(r);}).catch(function(e){f&&f(e);});},
+    getHistory:function(pid){supaHistory(pid).then(function(r){s&&s(r);}).catch(function(e){f&&f(e);});},
+    addNotif:function(n){supaAddNotif(n).then(function(r){s&&s(r);}).catch(function(e){f&&f(e);});},
     notify:function(){s&&s({ok:true});}
   };return api;}
   window.google={script:{get run(){return runner();}}};
+
+  // Gửi email duyệt qua Apps Script mailer (no-cors, fire-and-forget)
+  window.__sendApprovalEmail=function(evt){
+    var cfg=window.EDL_CFG||{}; if(!cfg.mailerUrl){return;}
+    var payload=Object.assign({secret:cfg.mailerSecret||''},evt||{});
+    try{ fetch(cfg.mailerUrl,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify(payload)}); }catch(e){}
+  };
+
+  // Tải file đính kèm (ảnh/mp4/gif) lên Supabase Storage, trả về link ký sẵn
+  window.__uploadAttachment=function(file){
+    return new Promise(function(resolve,reject){
+      if(!SB){reject(new Error('Chưa kết nối'));return;}
+      var safe=(file.name||'file').replace(/[^A-Za-z0-9._-]+/g,'_');
+      var path='att/'+Date.now()+'_'+Math.random().toString(36).slice(2,7)+'_'+safe;
+      SB.storage.from('attachments').upload(path,file,{contentType:file.type||'application/octet-stream',upsert:false}).then(function(u){
+        if(u.error){reject(u.error);return;}
+        SB.storage.from('attachments').createSignedUrl(path,315360000).then(function(su){
+          if(su.error){reject(su.error);return;}
+          resolve({url:su.data.signedUrl,name:(file.name||'file').replace(/\.[^.]+$/,''),type:file.type||'',path:path});
+        });
+      });
+    });
+  };
 
   SB=window.supabase.createClient("https://gwavhbebglgkeihyvsou.supabase.co","eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3YXZoYmViZ2xna2VpaHl2c291Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg5MzEzMTcsImV4cCI6MjEwNDUwNzMxN30.0LsDw1aakQZ1XLcQ5oTS4KQNNmKFtDwPWtl8u4RGrfM",{auth:{persistSession:true,detectSessionInUrl:true,autoRefreshToken:true}});
   function gate(id){['gateLogin','gateNoAccess'].forEach(function(g){$(g).hidden=g!==id;});}
@@ -2926,7 +3128,7 @@ if (typeof GAS_MODE === 'undefined' || !GAS_MODE) bootApp();
         ME=r.data; CURRENT_USER=MYEMAIL;
         $('gateLogin').hidden=true;$('gateNoAccess').hidden=true;
         window.google.script.run.withSuccessHandler(function(res){
-          if(res&&res.ok){if(res.data&&res.data.processes)DOC=res.data; if(res.members&&res.members.length)MEMBERS=res.members;}
+          if(res&&res.ok){if(res.data&&res.data.processes)DOC=res.data; if(res.members&&res.members.length)MEMBERS=res.members; if(res.notifications)NOTIFS=res.notifications; if(res.config)window.EDL_CFG={mailerUrl:res.config.mailer_url,mailerSecret:res.config.mailer_secret};}
           try{bootApp();}catch(e){var si=$('siteInner');if(si)si.innerHTML='<div style="padding:40px">Load error: '+(e&&e.message)+'</div>';}
         }).withFailureHandler(function(e){var si=$('siteInner');if(si)si.innerHTML='<div style="padding:40px">Không tải được dữ liệu: '+(e&&e.message)+'</div>';}).loadData();
       });
@@ -2934,10 +3136,15 @@ if (typeof GAS_MODE === 'undefined' || !GAS_MODE) bootApp();
   }
   SB.auth.onAuthStateChange(function(evt){if(evt==='SIGNED_IN'&&!booted)start();});
   $('emailBtn').onclick=function(){var em=($('loginEmail').value||'').trim().toLowerCase();if(!em){$('loginErr').textContent='Nhập email đã nhé';return;}
-    $('emailBtn').disabled=true;$('emailBtn').textContent='Đang gửi…';
-    SB.auth.signInWithOtp({email:em,options:{emailRedirectTo:location.href.split('#')[0]}}).then(function(r){
-      $('emailBtn').disabled=false;$('emailBtn').textContent='Gửi link đăng nhập';
-      if(r.error){$('loginErr').textContent=r.error.message;return;}$('loginForm').hidden=true;$('loginSent').hidden=false;});};
+    $('loginErr').textContent='';$('emailBtn').disabled=true;$('emailBtn').textContent='Đang kiểm tra…';
+    SB.rpc('is_allowed_email',{p_email:em}).then(function(chk){
+      if(chk.error){$('emailBtn').disabled=false;$('emailBtn').textContent='Gửi link đăng nhập';$('loginErr').textContent=chk.error.message;return;}
+      if(!chk.data){$('emailBtn').disabled=false;$('emailBtn').textContent='Gửi link đăng nhập';$('loginErr').innerHTML='Chưa có quyền truy cập. Vui lòng liên hệ L&amp;D Team (lnd@pizza4ps.com) để được hỗ trợ.';return;}
+      $('emailBtn').textContent='Đang gửi…';
+      SB.auth.signInWithOtp({email:em,options:{emailRedirectTo:location.href.split('#')[0]}}).then(function(r){
+        $('emailBtn').disabled=false;$('emailBtn').textContent='Gửi link đăng nhập';
+        if(r.error){$('loginErr').textContent=r.error.message;return;}$('loginForm').hidden=true;$('loginSent').hidden=false;});
+    });};
   $('naSignout').onclick=function(){SB.auth.signOut().then(function(){location.href=location.href.split('#')[0];});};
   start();
 })();
