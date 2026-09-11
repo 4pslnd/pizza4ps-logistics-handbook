@@ -5,17 +5,17 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <style>
-.sb-gate{position:fixed;inset:0;background:#F5F4F0;display:flex;align-items:center;justify-content:center;padding:24px;z-index:9999;font-family:"Century Gothic",system-ui,sans-serif}
+.sb-gate{position:fixed;inset:0;background:#F5F4F0;display:flex;align-items:center;justify-content:center;padding:24px;z-index:9999;font-family:var(--font-body),'Atlas Grotesk',system-ui,sans-serif}
 .sb-gate__box{text-align:center;max-width:420px}
 .sb-logo{height:48px;width:auto;display:block;margin:0 auto 18px}
 .sb-gate h1{font-family:var(--font-display),'Century Std Condensed',Georgia,serif;font-size:28px;font-weight:400;color:#1B2233;margin:0 0 6px;letter-spacing:.01em}
-.sb-gate p{color:#4A5268;margin:8px 0 18px}
-.sb-gate input{width:100%;max-width:320px;margin:0 auto 12px;text-align:center;display:block;border:1px solid #D2CFC4;border-radius:8px;padding:9px 10px;font-size:14px}
-.sb-gate button{background:#242F52;color:#fff;border:none;border-radius:10px;padding:11px 22px;font-weight:600;font-size:15px;cursor:pointer}
+.sb-gate p{font-family:var(--font-body),'Atlas Grotesk',sans-serif;font-weight:400;color:#4A5268;margin:8px 0 18px;line-height:1.55}
+.sb-gate input{font-family:var(--font-body),'Atlas Grotesk',sans-serif;width:100%;max-width:320px;margin:0 auto 12px;text-align:center;display:block;border:1px solid #D2CFC4;border-radius:8px;padding:9px 10px;font-size:14px}
+.sb-gate button{font-family:var(--font-body),'Atlas Grotesk',sans-serif;background:#242F52;color:#fff;border:none;border-radius:10px;padding:11px 22px;font-weight:600;font-size:15px;cursor:pointer}
 .sb-gate button.ghost{background:transparent;color:#242F52;border:1px solid #D2CFC4}
-.sb-err{color:#B23A3A;font-size:13px;margin-top:8px}
+.sb-err{font-family:var(--font-body),'Atlas Grotesk',sans-serif;font-weight:400;color:#B23A3A;font-size:13px;margin-top:8px;line-height:1.5}
 </style>
-<style>.dg-node-badge{font-size:13px!important;font-weight:700!important;padding:3px 8px!important;min-width:24px;height:auto!important;border-radius:8px!important;line-height:1.3!important}.pillar-guide{--p-accent:#242F52;--p-text:#242F52}.hb-bellpanel{max-height:none!important;overflow:visible!important;display:flex;flex-direction:column}.hb-bellpanel__head{position:static}.hb-bellpanel__tools{position:static}.hb-notiflist{max-height:56vh;overflow-y:auto}.hb-notif__row{display:flex;align-items:center;justify-content:space-between;gap:8px}.hb-notif__date{color:#7A8199;font-size:11px;white-space:nowrap}.hb-npic{margin:0;font-size:12px;padding:6px 8px;border:1px solid #D2CFC4;border-radius:8px;width:100%;background:#fff}.hb-notif__t--deleted{background:#FBE9E7;color:#A8322A}.hb-notif__t--restored{background:#EAF5EC;color:#2E6B37}.hb-filterbtn{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border:1px solid var(--hairline-strong,#D2CFC4);background:var(--paper-raised,#fff);border-radius:999px;color:#4A5268;cursor:pointer;flex:0 0 auto}.hb-filterbtn:hover{background:var(--lane-bg,#F5F4F0)}.hb-filterbtn.is-on{background:#242F52;border-color:#242F52;color:#fff}.hb-filterbtn svg{width:16px;height:16px}.hb-filterwrap{position:relative}.hb-picpop{position:absolute;right:0;top:40px;z-index:130;width:270px;max-height:340px;overflow-y:auto;background:#fff;border:1px solid var(--hairline-strong,#D2CFC4);border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.16);padding:6px}.hb-picpop__opt{display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:0;background:none;border-radius:8px;padding:8px 10px;cursor:pointer;font-family:var(--font-body);font-size:13px;color:var(--ink,#1B2233)}.hb-picpop__opt:hover{background:var(--lane-bg,#F5F4F0)}.hb-picpop__opt.is-sel{background:var(--indigo-2-fill,#E8ECF7);font-weight:700}.hb-picpop__opt .pic-avatar{width:26px;height:26px;font-size:11px}.hb-picpop__name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.hb-picpop__count{font-size:11px;color:#7A8199;background:var(--lane-bg,#F5F4F0);border-radius:999px;padding:1px 8px;flex:0 0 auto}.hb-picpop__hd{font-family:var(--font-body);font-weight:700;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#7A8199;padding:8px 10px 4px}.hb-guidelink{display:inline-flex;align-items:center;gap:8px;margin:0 0 14px;padding:10px 14px;background:var(--indigo-2-fill,#E8ECF7);border:1px solid rgba(36,47,82,.16);border-radius:10px;color:#242F52;font-family:var(--font-body);font-weight:700;font-size:13px;text-decoration:none;cursor:pointer}.hb-guidelink:hover{background:#242F52;color:#fff}.hb-guidelink svg{width:16px;height:16px}.toc-card__trash{position:absolute;top:10px;right:10px;width:26px;height:26px;border:1px solid var(--hairline-strong,#D2CFC4);background:rgba(255,255,255,.9);border-radius:7px;color:#A8322A;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2}.toc-card__trash:hover{background:#FBE9E7;border-color:#A8322A}.toc-card__trash svg{width:14px;height:14px}.toc-card{position:relative}.pl-trash-restore{border-color:#4FA45A;color:#2E6B37}.pl-trash-restore:hover{background:#EAF5EC}.mk-step-drag{display:flex;align-items:center;justify-content:center;width:20px;color:#B7BAC9;cursor:grab;flex:0 0 auto;font-size:13px;user-select:none}.mk-step-drag:active{cursor:grabbing}.mk-step-row.is-drag{opacity:.4}.mk-step-row.is-over{box-shadow:inset 0 2px 0 #242F52}.mk-req{color:#B23A3A}.mk-drop{border:1.5px dashed var(--hairline-strong,#D2CFC4);border-radius:10px;background:var(--lane-bg,#F5F4F0);padding:14px;text-align:center;color:#4A5268;font-size:12px;cursor:pointer;margin-bottom:8px}.mk-drop:hover,.mk-drop.is-over{border-color:#242F52;background:#EEF1F8;color:#242F52}.mk-drop b{color:#242F52}.al-export{position:relative}.al-exportmenu{position:absolute;right:0;top:34px;z-index:20;background:#fff;border:1px solid var(--hairline-strong,#D2CFC4);border-radius:10px;box-shadow:0 12px 30px rgba(0,0,0,.16);padding:6px;min-width:150px}.al-exportmenu button{display:block;width:100%;text-align:left;border:0;background:none;border-radius:7px;padding:8px 12px;font-family:var(--font-body);font-size:13px;color:var(--ink,#1B2233);cursor:pointer}.al-exportmenu button:hover{background:var(--lane-bg,#F5F4F0)}.dg-phase{position:absolute;border-left:3px solid #242F52;background:rgba(36,47,82,.06);border-radius:6px;display:flex;align-items:center;justify-content:center;z-index:0;pointer-events:none}.dg-phase span{writing-mode:vertical-rl;transform:rotate(180deg);font-weight:700;font-size:12px;color:#242F52;letter-spacing:.1em;text-transform:uppercase}</style>
+<style>.dg-node-badge{font-size:13px!important;font-weight:700!important;padding:3px 8px!important;min-width:24px;height:auto!important;border-radius:8px!important;line-height:1.3!important}.pillar-guide{--p-accent:#242F52;--p-text:#242F52}.hb-bellpanel{max-height:none!important;overflow:visible!important;display:flex;flex-direction:column}.hb-bellpanel__head{position:static}.hb-bellpanel__tools{position:static}.hb-notiflist{max-height:56vh;overflow-y:auto}.hb-notif__row{display:flex;align-items:center;justify-content:space-between;gap:8px}.hb-notif__date{color:#7A8199;font-size:11px;white-space:nowrap}.hb-npic{margin:0;font-size:12px;padding:6px 8px;border:1px solid #D2CFC4;border-radius:8px;width:100%;background:#fff}.hb-notif__t--deleted{background:#FBE9E7;color:#A8322A}.hb-notif__t--restored{background:#EAF5EC;color:#2E6B37}.hb-filterbtn{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border:1px solid var(--hairline-strong,#D2CFC4);background:var(--paper-raised,#fff);border-radius:999px;color:#4A5268;cursor:pointer;flex:0 0 auto}.hb-filterbtn:hover{background:var(--lane-bg,#F5F4F0)}.hb-filterbtn.is-on{background:#242F52;border-color:#242F52;color:#fff}.hb-filterbtn svg{width:16px;height:16px}.hb-filterwrap{position:relative}.hb-picpop{position:absolute;right:0;top:40px;z-index:130;width:270px;max-height:340px;overflow-y:auto;background:#fff;border:1px solid var(--hairline-strong,#D2CFC4);border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.16);padding:6px}.hb-picpop__opt{display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:0;background:none;border-radius:8px;padding:8px 10px;cursor:pointer;font-family:var(--font-body);font-size:13px;color:var(--ink,#1B2233)}.hb-picpop__opt:hover{background:var(--lane-bg,#F5F4F0)}.hb-picpop__opt.is-sel{background:var(--indigo-2-fill,#E8ECF7);font-weight:700}.hb-picpop__opt .pic-avatar{width:26px;height:26px;font-size:11px}.hb-picpop__name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.hb-picpop__count{font-size:11px;color:#7A8199;background:var(--lane-bg,#F5F4F0);border-radius:999px;padding:1px 8px;flex:0 0 auto}.hb-picpop__hd{font-family:var(--font-body);font-weight:700;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#7A8199;padding:8px 10px 4px}.hb-guidelink{display:inline-flex;align-items:center;gap:8px;margin:0 0 14px;padding:10px 14px;background:var(--indigo-2-fill,#E8ECF7);border:1px solid rgba(36,47,82,.16);border-radius:10px;color:#242F52;font-family:var(--font-body);font-weight:700;font-size:13px;text-decoration:none;cursor:pointer}.hb-guidelink:hover{background:#242F52;color:#fff}.hb-guidelink svg{width:16px;height:16px}.toc-card__trash{position:absolute;top:10px;right:10px;width:26px;height:26px;border:1px solid var(--hairline-strong,#D2CFC4);background:rgba(255,255,255,.9);border-radius:7px;color:#A8322A;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2}.toc-card__trash:hover{background:#FBE9E7;border-color:#A8322A}.toc-card__trash svg{width:14px;height:14px}.toc-card{position:relative}.pl-trash-restore{border-color:#4FA45A;color:#2E6B37}.pl-trash-restore:hover{background:#EAF5EC}.mk-step-drag{display:flex;align-items:center;justify-content:center;width:20px;color:#B7BAC9;cursor:grab;flex:0 0 auto;font-size:13px;user-select:none}.mk-step-drag:active{cursor:grabbing}.mk-step-row.is-drag{opacity:.4}.mk-step-row.is-over{box-shadow:inset 0 2px 0 #242F52}.mk-req{color:#B23A3A}.hb-topwrap{position:sticky;top:0;z-index:80;background:var(--paper-raised,#fff)}.mk-readonly{padding:8px 10px;border:1px solid var(--hairline,#E7E4DB);border-radius:8px;background:var(--lane-bg,#F5F4F0);font-size:13.5px;color:var(--ink,#1B2233)}.proc-hero__by{display:flex;flex-direction:column;gap:2px}.proc-hero__by span{display:block}.mk-drop{border:1.5px dashed var(--hairline-strong,#D2CFC4);border-radius:10px;background:var(--lane-bg,#F5F4F0);padding:14px;text-align:center;color:#4A5268;font-size:12px;cursor:pointer;margin-bottom:8px}.mk-drop:hover,.mk-drop.is-over{border-color:#242F52;background:#EEF1F8;color:#242F52}.mk-drop b{color:#242F52}.al-export{position:relative}.al-exportmenu{position:absolute;right:0;top:34px;z-index:20;background:#fff;border:1px solid var(--hairline-strong,#D2CFC4);border-radius:10px;box-shadow:0 12px 30px rgba(0,0,0,.16);padding:6px;min-width:150px}.al-exportmenu button{display:block;width:100%;text-align:left;border:0;background:none;border-radius:7px;padding:8px 12px;font-family:var(--font-body);font-size:13px;color:var(--ink,#1B2233);cursor:pointer}.al-exportmenu button:hover{background:var(--lane-bg,#F5F4F0)}.dg-phase{position:absolute;border-left:3px solid #242F52;background:rgba(36,47,82,.06);border-radius:6px;display:flex;align-items:center;justify-content:center;z-index:0;pointer-events:none}.dg-phase span{writing-mode:vertical-rl;transform:rotate(180deg);font-weight:700;font-size:12px;color:#242F52;letter-spacing:.1em;text-transform:uppercase}</style>
 <title>EDL Internal Handbook</title>
 <style>
 /* ==========================================================================
@@ -1056,6 +1056,7 @@ textarea{resize:vertical;min-height:60px;line-height:1.5}
   <button class="ghost" id="naSignout">Sign out</button>
 </div></div>
 
+<div class="hb-topwrap">
 <div class="hb-topbar">
   <a class="hb-topbar__brand" href="#" id="brandLink"><span id="brandMark"><svg class="p4p-mark" viewBox="0 0 216 172" xmlns="http://www.w3.org/2000/svg" aria-label="Pizza 4P's">
       <path d="M18,3 L214,86 L18,169 C-4,131 -4,41 18,3 Z" fill="#24264A"/>
@@ -1079,6 +1080,7 @@ textarea{resize:vertical;min-height:60px;line-height:1.5}
 <div class="hb-topbar hb-topbar--sub" style="padding-top:6px;padding-bottom:6px;min-height:0">
   <div class="hb-topbar__crumb" id="crumb"></div>
 </div>
+</div><!-- /hb-topwrap -->
 
 <div id="siteInner" class="hb-shell"></div>
 
@@ -1648,7 +1650,7 @@ var PILLARS = [
   { key: 'data', label: 'Data' },
   { key: 'logistics', label: 'Logistics' },
   { key: 'training', label: 'Training' },
-  { key: 'guide', label: 'Guide' }
+  { key: 'guide', label: 'User guide' }
 ];
 var PILLAR_LABEL = {}; PILLARS.forEach(function (p) { PILLAR_LABEL[p.key] = p.label; });
 /* Derive a display name from an email local part: nguyen.che -> "Nguyen Che". */
@@ -1806,10 +1808,13 @@ function showHistory(p, h) {
       if (idx === null || idx === '') return;
       if (+idx === 0) { Modal.alert('Already current', 'That is the version currently shown — nothing to restore.'); return; }
       var v = h[+idx];
-      Modal.confirm('Restore this version?', 'From ' + fmtDate(v.at) + ' by ' + esc(v.by || '') + '. The current content will be replaced by this version.', function () {
+      Modal.confirm('Restore this version?', 'From ' + fmtDate(v.at) + ' by ' + esc(displayName(v.by || '')) + '. The current content will be replaced by this version.', function () {
         var snap = v.snap ? (typeof v.snap === 'string' ? JSON.parse(v.snap) : v.snap) : null;
-        if (snap) { for (var k in snap) { p[k] = snap[k]; } render();
-          Modal.alert('Restored', 'Loaded the version from ' + fmtDate(v.at) + '. Click Save / Publish to keep it.'); }
+        if (snap) { for (var k in snap) { p[k] = snap[k]; } p._restoreNote = 'Restored from ' + fmtDate(v.at);
+          openEditor(p.process_id);
+          Modal.alert('Restored — one more step', 'Loaded the version from <b>' + fmtDate(v.at) + '</b> into the editor. Nothing is live yet.<br><br>' +
+            '<b>To make it the live version:</b> click <b>Save draft</b> (if it is a draft) or <b>Publish</b>. ' +
+            'The note is pre-filled as “Restored from ' + fmtDate(v.at) + '”, so afterwards the top entry in History (marked CURRENT) — and the version note — will clearly show the live version is this restore.'); }
       }, { okLabel: 'Restore' });
     });
 }
@@ -1823,16 +1828,28 @@ function addNotif(type, p) {
 }
 function updateBell() { var b = $('bellBadge'); if (!b) return; var n = NOTIFS.length - bellSeen; if (n > 0) { b.textContent = n > 9 ? '9+' : n; b.hidden = false; } else b.hidden = true; }
 
+/* Effort is measured in working days.
+   - perPersonDays = sum of "working days / person" across steps (calendar-ish)
+   - totalDays     = sum of (working days / person x people on step) = total effort
+   - doers         = sum of "people on this step" across steps */
 function processTotals(p) {
-  var days = 0, hours = 0, hasDays = false, hasHours = false;
+  var perPersonDays = 0, totalDays = 0, doers = 0, hasDays = false, hasDoers = false;
   (p.steps || []).forEach(function (s) {
     if (s.type === 'start' || s.type === 'end') return;
-    if (s.workingDays != null && s.workingDays !== '') { days += Number(s.workingDays); hasDays = true; }
-    if (s.hoursPerPerson != null && s.hoursPerPerson !== '') {
-      hours += Number(s.hoursPerPerson) * Math.max(1, ownersOf(s.lane).length); hasHours = true;
+    var n = (s.persons != null && s.persons !== '') ? Number(s.persons) : null;
+    if (n != null) { doers += n; hasDoers = true; }
+    if (s.workingDays != null && s.workingDays !== '') {
+      var d = Number(s.workingDays), pp = Math.max(1, n != null ? n : (ownersOf(s.lane).length || 1));
+      perPersonDays += d; totalDays += d * pp; hasDays = true;
     }
   });
-  return { days: days, hours: hours, hasDays: hasDays, hasHours: hasHours };
+  return { perPersonDays: perPersonDays, totalDays: totalDays, doers: doers, hasDays: hasDays, hasDoers: hasDoers };
+}
+function totalDaysText(s) {
+  var wd = (s.workingDays != null && s.workingDays !== '') ? Number(s.workingDays) : null;
+  var n = (s.persons != null && s.persons !== '') ? Number(s.persons) : null;
+  if (wd == null || n == null) return '<span style="color:var(--ink-faint)">— fill in both fields above —</span>';
+  return '<b>' + (wd * n) + '</b> working day' + (wd * n === 1 ? '' : 's') + ' <span style="color:var(--ink-faint)">(' + wd + ' × ' + n + ')</span>';
 }
 function counts(p) { return {
   steps: (p.steps || []).filter(function (s) { return s.type !== 'start' && s.type !== 'end'; }).length,
@@ -1857,12 +1874,17 @@ function persist(message, onDone) {
   } else { setTimeout(function () { onDone(true, { ok: true, mock: true }); }, 300); }
 }
 /* Decide what the primary editor button does right now, given draft/review state. */
+/* A DRAFT can always be saved, even if incomplete — that is the whole point of
+   a draft. Only Send-for-approval and Publish require the process to validate. */
 function editorState() {
   if (!P) return { label: 'Publish', disabled: true, mode: 'save' };
-  if (kindOf(P) === 'process' && validate().length > 0) return { label: saveVerb(), disabled: true, mode: 'invalid' };
-  if (P.status === 'draft' && P.reviewer && P.review === 'none') return { label: '→ Send for approval', disabled: false, mode: 'send' };
   if (P.review === 'pending') return { label: 'Waiting for approval…', disabled: true, mode: 'pending' };
-  return { label: saveVerb(), disabled: !dirty, mode: 'save' };
+  var invalid = kindOf(P) === 'process' && validate().length > 0;
+  if (P.status === 'draft') {
+    if (P.reviewer && P.review === 'none') return { label: '→ Send for approval', disabled: invalid, mode: invalid ? 'invalid' : 'send' };
+    return { label: 'Save draft', disabled: !dirty, mode: 'save' };
+  }
+  return { label: 'Publish', disabled: !dirty || invalid, mode: invalid ? 'invalid' : 'save' };
 }
 function updatePublishButton() {
   var b = $('pub'); if (!b || !P) return;
@@ -1945,11 +1967,11 @@ function renderDetailCard(step) {
     }).join('') + '</span></span></div>';
   var isWork = (step.type === 'action' || step.type === 'decision');
   var showDays = isWork && step.workingDays != null && step.workingDays !== '';
-  var showEffort = isWork && step.hoursPerPerson != null && step.hoursPerPerson !== '';
-  var ownerN = Math.max(1, ownersOf(step.lane).length);
+  var pers = (step.persons != null && step.persons !== '') ? Number(step.persons) : null;
   var sub = [];
-  if (showDays) sub.push(esc(step.workingDays) + ' working day' + (step.workingDays == 1 ? '' : 's'));
-  if (showEffort) sub.push(ownerN + ' &times; ' + esc(step.hoursPerPerson) + 'h = ' + (ownerN * step.hoursPerPerson) + 'h total effort');
+  if (showDays) sub.push(esc(step.workingDays) + ' working day' + (step.workingDays == 1 ? '' : 's') + ' / person');
+  if (pers != null) sub.push(pers + ' ' + (pers === 1 ? 'doer' : 'doers'));
+  if (showDays && pers != null) sub.push('Total ' + (Number(step.workingDays) * pers) + ' working days');
   var images = (step.images || []).filter(function (im) { return im && im.src; });
   var imgHtml = images.length ? '<div class="dp-images"><span class="dp-images__label">Guide images / video</span>' +
     '<div class="dp-images__grid">' + images.map(function (im) {
@@ -2143,9 +2165,9 @@ function validate() {
     if (!s.label || !s.label.trim()) e.push('One step has no name.');
     if (!s.lane || !s.lane.trim()) e.push('Step "' + s.label + '" has nobody assigned to it.');
     if (s.type === 'action' || s.type === 'decision') {
-      if (s.workingDays == null || s.workingDays === '') e.push('Step "' + s.label + '" is missing Working days.');
+      if (!s.task || !s.task.trim()) e.push('Step "' + s.label + '" is missing a Full description.');
+      if (s.workingDays == null || s.workingDays === '') e.push('Step "' + s.label + '" is missing Working days / person.');
       if (s.persons == null || s.persons === '') e.push('Step "' + s.label + '" is missing People on this step.');
-      if (s.hoursPerPerson == null || s.hoursPerPerson === '') e.push('Step "' + s.label + '" is missing Hours per person.');
     }
     (s.files || []).forEach(function (f) { if (f.url && !looksLikeUrl(f.url)) e.push('"' + (f.label || 'A file') + '" has a link that doesn’t look like a real URL.'); });
   });
@@ -2199,9 +2221,11 @@ function itemCard(p) {
   var meta = p.status === 'draft' ? '<span>Draft</span>' : p.status === 'archived' ? '<span>Archived</span>'
     : (kind === 'alignment' ? '<span>Alignment doc</span>' : '<span>' + plural(c.steps, 'step') + '</span><span>' + plural(c.gates, 'review gate') + '</span>');
   var revBadge = p.review === 'pending' ? '<span class="rev-chip rev-chip--pending">In review</span>' : '';
-  var trash = edit ? '<button class="toc-card__trash" data-del="' + esc(p.process_id) + '" title="Delete (move to Trash)" aria-label="Delete ' + esc(p.title) + '">' + TRASH_SVG + '</button>' : '';
-  return '<div class="toc-cardwrap" style="position:relative;height:100%">' +
-    '<button class="toc-card toc-card--flat" data-proc="' + p.process_id + '" data-pillarkey="' + p.pillar + '">' +
+  /* trash is a span (valid inside the card <button>); its click stops the card
+     navigation. Keeping it inside the card means the card stays the single grid
+     item, so every card in a row is exactly the same size. */
+  var trash = edit ? '<span class="toc-card__trash" role="button" tabindex="0" data-del="' + esc(p.process_id) + '" title="Delete (move to Trash)" aria-label="Delete ' + esc(p.title) + '">' + TRASH_SVG + '</span>' : '';
+  return '<button class="toc-card toc-card--flat" data-proc="' + p.process_id + '" data-pillarkey="' + p.pillar + '">' + trash +
     '<div class="toc-card__top">' +
       '<span class="mk-status-pill mk-status-pill--' + p.status + '">' + p.status + '</span>' + revBadge +
       (edit ? '' : '<span class="hb-access hb-access--view">' + LOCK + 'View only</span>') + ARROW +
@@ -2212,12 +2236,11 @@ function itemCard(p) {
     '<div class="toc-card__foot toc-card__foot--br">' +
       '<span class="toc-card__pic">' + (p.pic ? 'PIC: ' + esc(displayName(p.pic)) : 'No PIC') + '</span>' +
       '<span class="toc-card__date">' + (p.updatedAt ? 'Updated on ' + fmtDate(p.updatedAt) : '') + '</span>' +
-    '</div></button>' + trash + '</div>';
+    '</div></button>';
 }
 /* A card for a soft-deleted item, shown only under Trash to editors. */
 function trashCard(p) {
-  return '<div class="toc-cardwrap" style="position:relative;height:100%">' +
-    '<div class="toc-card toc-card--flat" style="opacity:.75">' +
+  return '<div class="toc-card toc-card--flat" style="position:relative;opacity:.8">' +
     '<div class="toc-card__top"><span class="mk-status-pill mk-status-pill--archived">deleted</span>' +
       '<div class="mk-grow"></div>' +
       '<button class="mk-btn pl-trash-restore" data-restore="' + esc(p.process_id) + '" style="padding:4px 10px;font-size:11px">↩ Restore</button></div>' +
@@ -2226,7 +2249,7 @@ function trashCard(p) {
     '<div class="toc-card__foot toc-card__foot--br">' +
       '<span class="toc-card__pic">' + (p.pic ? 'PIC: ' + esc(displayName(p.pic)) : 'No PIC') + '</span>' +
       '<span class="toc-card__date">' + (p.deletedBy ? 'Deleted by ' + esc(displayName(p.deletedBy)) + (p.deletedAt ? ' on ' + fmtDate(p.deletedAt) : '') : '') + '</span>' +
-    '</div></div></div>';
+    '</div></div>';
 }
 function wireCards(root) {
   root.querySelectorAll('[data-proc]').forEach(function (b) {
@@ -2305,7 +2328,7 @@ function drawHome() {
       (results.length ? '<div class="toc-grid">' + results.map(itemCard).join('') + '</div>' : '<p class="pl-empty">Nothing matches “' + esc(q) + '”.</p>') + '</section>';
   } else {
     var gd = guideDoc();
-    var guideLink = gd ? '<a href="#" class="hb-guidelink" id="guideLink">' + GUIDE_SVG + 'How to use this handbook</a>' : '';
+    var guideLink = gd ? '<a href="#" class="hb-guidelink" id="guideLink">' + GUIDE_SVG + 'User guide — how to use this handbook</a>' : '';
     var visList = DOC.processes.filter(function (p) { return canSee(p) && p.pillar !== 'guide'; });
     var seg = '<div class="hb-segrow" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px">' +
       '<div class="hb-seg" role="group" aria-label="Group by" style="margin-bottom:0">' +
@@ -2500,10 +2523,12 @@ function heroFor(p, flowLabelHtml) {
     '<h1 class="hb-h1">' + esc(p.title) + '</h1>' +
     '<p class="hb-lede">' + esc(p.subtitle || '') + '</p>' +
     (flowLabelHtml || '') +
-    '<p class="proc-hero__by">' + (p.pic ? 'PIC: <b>' + esc(displayName(p.pic)) + '</b>' : '') +
-      (p.updatedBy ? ' · Updated by ' + esc(displayName(p.updatedBy)) + (p.updatedAt ? ' on ' + fmtDate(p.updatedAt) : '') : '') +
-      (p.createdBy ? ' · Created by ' + esc(displayName(p.createdBy)) + (p.createdAt ? ' on ' + fmtDate(p.createdAt) : '') : '') +
-      (p.reviewedBy ? ' · Reviewed by ' + esc(displayName(p.reviewedBy)) + (p.reviewedAt ? ' on ' + fmtDate(p.reviewedAt) : '') : '') +
+    '<p class="proc-hero__by">' + [
+      p.pic ? 'PIC: <b>' + esc(displayName(p.pic)) + '</b>' : '',
+      p.createdBy ? 'Created by ' + esc(displayName(p.createdBy)) + (p.createdAt ? ' on ' + fmtDate(p.createdAt) : '') : '',
+      p.updatedBy ? 'Updated by ' + esc(displayName(p.updatedBy)) + (p.updatedAt ? ' on ' + fmtDate(p.updatedAt) : '') : '',
+      p.reviewedBy ? 'Reviewed by ' + esc(displayName(p.reviewedBy)) + (p.reviewedAt ? ' on ' + fmtDate(p.reviewedAt) : '') : ''
+    ].filter(Boolean).map(function (x) { return '<span>' + x + '</span>'; }).join('') +
       '</p></section>';
 }
 function wireItemHeader(p) {
@@ -2533,8 +2558,9 @@ function drawProcess(p) {
   var c = counts(p), t = processTotals(p);
   var metaChips = '<div class="proc-meta"><span class="proc-meta__chip">' + plural(c.steps, 'step') + '</span>' +
     '<span class="proc-meta__chip">' + plural(c.gates, 'review gate') + '</span>' +
-    (t.hasDays ? '<span class="proc-meta__chip">' + t.days + ' working days total</span>' : '') +
-    (t.hasHours ? '<span class="proc-meta__chip">' + t.hours + 'h effort total</span>' : '') + '</div>';
+    (t.hasDays ? '<span class="proc-meta__chip">' + t.perPersonDays + ' working days / person</span>' : '') +
+    (t.hasDays ? '<span class="proc-meta__chip">' + t.totalDays + ' total working days</span>' : '') +
+    (t.hasDoers ? '<span class="proc-meta__chip">' + t.doers + ' doers</span>' : '') + '</div>';
   S.innerHTML = heroFor(p, metaChips) +
     '<section class="proc-diagram"><div class="proc-diagram__label"><h2>Process flow</h2>' +
     '<span class="dg-zoomctl" id="siteZoomCtl"></span></div>' +
@@ -2675,8 +2701,9 @@ function drawBanner() {
 }
 function drawDiagram() {
   var t = processTotals(P);
-  $('procTotals').innerHTML = (t.hasDays ? '<span class="proc-meta__chip">' + t.days + ' working days total</span>' : '') +
-    (t.hasHours ? '<span class="proc-meta__chip">' + t.hours + 'h effort total</span>' : '');
+  $('procTotals').innerHTML = (t.hasDays ? '<span class="proc-meta__chip">' + t.perPersonDays + ' wd / person</span>' : '') +
+    (t.hasDays ? '<span class="proc-meta__chip">' + t.totalDays + ' total wd</span>' : '') +
+    (t.hasDoers ? '<span class="proc-meta__chip">' + t.doers + ' doers</span>' : '');
   try { var g = AutoLayout.layout(P); dgHandle = DiagramRender.render($('diagram'), g, { selected: sel, onPick: selectStep }); mountZoom($('zoomCtl'), dgHandle); }
   catch (err) { $('diagram').innerHTML = '<div class="mk-empty">Cannot draw the diagram yet — fix the problems above.</div>'; }
 }
@@ -2724,7 +2751,7 @@ function drawForm() {
       return '<label class="mk-nx"><input type="checkbox" data-next="' + o.id + '"' + (cur.indexOf(o.id) >= 0 ? ' checked' : '') + '><span>' + esc(nameOf(o)) + '</span></label>'; }).join('') : '<div class="mk-empty">No other steps</div>') +
       '</div><div class="mk-tip">Tick more than one if they happen at the same time.</div></div>';
   } else h += '<div class="mk-f"><div class="mk-tip">An End step has no arrow going out.</div></div>';
-  h += '<div class="mk-f"><label for="i_task">Full description</label><textarea id="i_task">' + esc(s.task) + '</textarea><div class="mk-tip">Shown on the website when someone opens this step.</div></div>';
+  h += '<div class="mk-f"><label for="i_task">Full description' + ((s.type === 'action' || s.type === 'decision') ? req : '') + '</label><textarea id="i_task">' + esc(s.task) + '</textarea><div class="mk-tip">Shown on the website when someone opens this step.</div></div>';
   var isMarker = (s.type === 'start' || s.type === 'end');
   if (!isMarker) {
     h += '<div class="mk-f"><label for="i_timeline">Timeline</label><input id="i_timeline" value="' + esc(s.timeline) + '"></div>';
@@ -2732,12 +2759,9 @@ function drawForm() {
       ['Before', 'During', 'After'].map(function (ph) { return '<option value="' + ph + '"' + (s.phase === ph ? ' selected' : '') + '>' + ph + '</option>'; }).join('') +
       '</select><div class="mk-tip">Groups steps into Before / During / After bands down the left of the diagram.</div></div>';
     var reqE = (s.type === 'action' || s.type === 'decision') ? req : '';
-    h += '<div class="mk-f"><label for="i_days">Working days' + reqE + '</label><input id="i_days" type="number" min="0" step="0.5" value="' + esc(s.workingDays == null ? '' : s.workingDays) + '" placeholder="e.g. 2"><div class="mk-tip">Calendar time this step takes — added up for total lead time.</div></div>';
+    h += '<div class="mk-f"><label for="i_days">Working days / person' + reqE + '</label><input id="i_days" type="number" min="0" step="0.5" value="' + esc(s.workingDays == null ? '' : s.workingDays) + '" placeholder="e.g. 2"><div class="mk-tip">Calendar days ONE person spends on this step.</div></div>';
     h += '<div class="mk-f"><label for="i_persons">People on this step' + reqE + '</label><input id="i_persons" type="number" min="1" step="1" value="' + esc(s.persons == null ? '' : s.persons) + '" placeholder="e.g. 1"></div>';
-    var pc = Math.max(1, (s.persons != null && s.persons !== '') ? Number(s.persons) : (ticked.length || 1));
-    h += '<div class="mk-f"><label for="i_hours">Hours per person' + reqE + '</label><input id="i_hours" type="number" min="0" step="0.5" value="' + esc(s.hoursPerPerson == null ? '' : s.hoursPerPerson) + '" placeholder="e.g. 2"><div class="mk-tip" id="effortReadout">' +
-      (s.hoursPerPerson != null && s.hoursPerPerson !== '' ? pc + ' people &times; ' + s.hoursPerPerson + 'h = <b>' + (pc * s.hoursPerPerson) + 'h total effort</b>' :
-        'Hours ONE person spends on this step. Multiplied by the number of people for total effort.') + '</div></div>';
+    h += '<div class="mk-f"><label>Total working days</label><div class="mk-readonly" id="totalDaysReadout">' + totalDaysText(s) + '</div><div class="mk-tip">Auto = Working days / person × People on this step.</div></div>';
     s.files = s.files || [];
     h += '<div class="mk-f"><label>Attach related files / links</label><div id="fileList">' + s.files.map(function (f, i) {
       var bad = f.url && !looksLikeUrl(f.url);
@@ -2757,19 +2781,17 @@ function drawForm() {
   F.innerHTML = h;
 
   bind('i_label', 'label', true); bind('i_task', 'task'); bind('i_timeline', 'timeline');
-  var daysEl = $('i_days'); if (daysEl) daysEl.oninput = function () { s.workingDays = daysEl.value === '' ? null : parseFloat(daysEl.value); markDirty(); renderLivePreview(); };
-  var hoursEl = $('i_hours'); if (hoursEl) hoursEl.oninput = function () { s.hoursPerPerson = hoursEl.value === '' ? null : parseFloat(hoursEl.value); markDirty(); renderLivePreview(); refreshEffortReadout(); };
-  var persEl = $('i_persons'); if (persEl) persEl.oninput = function () { s.persons = persEl.value === '' ? null : parseInt(persEl.value, 10); markDirty(); renderLivePreview(); refreshEffortReadout(); };
+  var taskEl = $('i_task'); if (taskEl) taskEl.addEventListener('input', drawBanner);
+  var daysEl = $('i_days'); if (daysEl) daysEl.oninput = function () { s.workingDays = daysEl.value === '' ? null : parseFloat(daysEl.value); markDirty(); renderLivePreview(); refreshTotalDays(); drawBanner(); };
+  var persEl = $('i_persons'); if (persEl) persEl.oninput = function () { s.persons = persEl.value === '' ? null : parseInt(persEl.value, 10); markDirty(); renderLivePreview(); refreshTotalDays(); drawBanner(); };
   var phEl = $('i_phase'); if (phEl) phEl.onchange = function () { s.phase = phEl.value || ''; markDirty(); draw(); };
-  function refreshEffortReadout() { var el = $('effortReadout'); if (!el) return; var n = Math.max(1, (s.persons != null && s.persons !== '') ? Number(s.persons) : (ownersOf(s.lane).length || 1));
-    el.innerHTML = (s.hoursPerPerson != null && s.hoursPerPerson !== '') ? n + ' people &times; ' + s.hoursPerPerson + 'h = <b>' + (n * s.hoursPerPerson) + 'h total effort</b>' :
-      'Hours ONE person spends on this step. Multiplied by the number of people for total effort.'; }
+  function refreshTotalDays() { var el = $('totalDaysReadout'); if (el) el.innerHTML = totalDaysText(s); }
   var stakeEl = $('i_stake'); if (stakeEl) stakeEl.oninput = function () { s.stakeholderDetail = stakeEl.value; markDirty(); renderLivePreview(); };
   ['i_yes', 'i_no'].forEach(function (k) { var e = $(k); if (!e) return; e.onchange = function () { s.next = s.next || {}; s.next[k === 'i_yes' ? 'yes' : 'no'] = e.value || null; markDirty(); draw(); }; });
   F.querySelectorAll('[data-owner]').forEach(function (cb) { cb.onchange = function () {
     var names = Array.prototype.map.call(F.querySelectorAll('[data-owner]:checked'), function (x) { return x.getAttribute('data-owner'); });
     if (!names.length) { cb.checked = true; Modal.alert('Pick at least one', 'A step needs at least one owner.'); return; }
-    var lane = laneFor(names); ensureLane(lane); s.lane = lane; markDirty(); draw(); refreshEffortReadout(); }; });
+    var lane = laneFor(names); ensureLane(lane); s.lane = lane; markDirty(); draw(); }; });
   $('addOwner').onclick = function () { Modal.prompt('Add someone new', 'Name of the new person or department:', '', function (v) {
     if (!v || !v.trim()) return; v = v.trim(); if (P.owners.indexOf(v) < 0) P.owners.push(v);
     var names = ownersOf(s.lane).concat([v]); var lane = laneFor(names); ensureLane(lane); s.lane = lane; markDirty(); draw(); }); };
@@ -2931,6 +2953,16 @@ function wireRichToolbar(ed) {
 
 /* ---- editor chrome ---- */
 function wireEditorChrome() {
+  /* Paste a screenshot anywhere while editing a process step → attaches it to
+     the selected step. Installed once; no need to focus a specific box. */
+  document.addEventListener('paste', function (e) {
+    if (view.level !== 'edit' || !P || kindOf(P) !== 'process') return;
+    var s = P.steps.filter(function (x) { return x.id === sel; })[0];
+    if (!s || s.type === 'start' || s.type === 'end') return;
+    var items = (e.clipboardData || {}).items || [], picked = [];
+    for (var i = 0; i < items.length; i++) { if (/^image\//.test(items[i].type)) { var f = items[i].getAsFile(); if (f) picked.push(f); } }
+    if (picked.length) { e.preventDefault(); addAttachments(s, picked); }
+  });
   document.querySelectorAll('[data-add]').forEach(function (b) { b.onclick = function () {
     if (!P || kindOf(P) !== 'process') return;
     var t = b.getAttribute('data-add'), base = 'new_step', id = base, i = 2, taken = {};
@@ -2978,18 +3010,21 @@ function wireEditorChrome() {
       });
       return;
     }
-    if (kindOf(P) === 'process') { var e = validate(); if (e.length) { Modal.alert('Fix these first', e.map(esc).join('<br>')); return; } }
+    /* Only enforce validation when publishing (making it live). A draft saves as-is. */
+    if (kindOf(P) === 'process' && P.status !== 'draft') { var e = validate(); if (e.length) { Modal.alert('Fix these before publishing', e.map(esc).join('<br>')); return; } }
     var verb = saveVerb();
     var _d = new Date(), _ymd = String(_d.getFullYear()).slice(2) + ('0' + (_d.getMonth() + 1)).slice(-2) + ('0' + _d.getDate()).slice(-2);
     var _tag = (P.status === 'draft') ? '(Draft) ' : '(Live) ';
-    Modal.prompt(verb, 'Short description of what you changed (saved to the edit history):', _tag + _ymd + '_' + (P.title || P.process_id), function (m) {
+    var _def = P._restoreNote ? (_tag + P._restoreNote) : (_tag + _ymd + '_' + (P.title || P.process_id));
+    Modal.prompt(verb, 'Short description of what you changed (saved to the edit history):', _def, function (m) {
       if (m === null) return;
+      delete P._restoreNote;
       $('pub').disabled = true; $('pub').textContent = verb + '…';
       var live = P.status === 'live';
       P.updatedAt = todayISO(); P.updatedBy = currentUser.email;
       if (P.status !== 'draft') P.review = 'none';
       function commit(realSaved) {
-        $('pub').textContent = verb; dirty = false;
+        $('pub').textContent = verb; dirty = false; delete P._restoreNote;
         pushHistory(P, m || (P.status === 'draft' ? 'Saved draft' : 'Published'));
         if (live) { addNotif('published', P); notifyServer('Published', P); }
         updatePublishButton();
