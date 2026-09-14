@@ -4404,6 +4404,23 @@ if (typeof GAS_MODE === 'undefined' || !GAS_MODE) bootApp();
         if((viewingThis||onList)&&window.render){ var y=window.scrollY||0; try{window.render();}catch(e){} window.scrollTo(0,y); }
       }).subscribe();
     }catch(e){}
+    /* Live notification bell: a new notification from SOMEONE ELSE pops into the
+       bell without a refresh. The current user's own actions are already added
+       optimistically, so skip those (matched by author) to avoid duplicates.
+       Needs the `notifications` table in the supabase_realtime publication. */
+    try{
+      SB.channel('notifications-live').on('postgres_changes',{event:'INSERT',schema:'public',table:'notifications'},function(payload){
+        var r=payload.new; if(!r)return;
+        if((r.by_email||'').toLowerCase()===MYEMAIL)return;
+        var n={type:r.type,id:r.process_id,pillar:r.pillar,title:r.title,pic:r.pic||'',by:r.by_email,at:r.at};
+        window.NOTIFS=window.NOTIFS||[];
+        var top=window.NOTIFS[0];
+        if(top&&top.type===n.type&&top.id===n.id&&top.by===n.by&&top.at===n.at)return;   /* dedupe */
+        window.NOTIFS.unshift(n);
+        try{if(window.updateBell)window.updateBell();}catch(e){}
+        try{var bp=$('bellPanel');if(bp&&!bp.hidden&&window.renderBellPanel)window.renderBellPanel();}catch(e){}
+      }).subscribe();
+    }catch(e){}
   }
   SB=window.supabase.createClient("https://gwavhbebglgkeihyvsou.supabase.co","eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3YXZoYmViZ2xna2VpaHl2c291Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg5MzEzMTcsImV4cCI6MjEwNDUwNzMxN30.0LsDw1aakQZ1XLcQ5oTS4KQNNmKFtDwPWtl8u4RGrfM",{auth:{persistSession:true,detectSessionInUrl:true,autoRefreshToken:true}});
   function gate(id){['gateLogin','gateNoAccess'].forEach(function(g){$(g).hidden=g!==id;});}
