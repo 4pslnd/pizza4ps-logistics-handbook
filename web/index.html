@@ -1151,9 +1151,11 @@ textarea{resize:vertical;min-height:60px;line-height:1.5}
         <button class="al-tb" data-cmd="underline" title="Underline"><u>U</u></button>
         <button class="al-tb" data-cmd="strikeThrough" title="Strikethrough"><s>S</s></button>
         <span class="al-tb__sep"></span>
-        <button class="al-tb" data-cmd="justifyLeft" title="Align left">&#8676;</button>
-        <button class="al-tb" data-cmd="justifyCenter" title="Align center">&#8677;&#8676;</button>
-        <button class="al-tb" data-cmd="justifyRight" title="Align right">&#8677;</button>
+        <select id="alAlign" class="al-tb__sel" title="Align" aria-label="Align">
+          <option value="">Align…</option>
+          <option value="justifyLeft">&#8676; Left</option>
+          <option value="justifyCenter">Center</option>
+          <option value="justifyRight">Right &#8677;</option></select>
         <span class="al-tb__sep"></span>
         <select id="alBlock" class="al-tb__sel" title="Text style" aria-label="Text style">
           <option value="">Text style…</option>
@@ -2082,6 +2084,13 @@ function fmtDate(iso) {
   var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso); if (!m) return iso;
   return m[3] + '/' + m[2] + '/' + m[1];
 }
+/* Date + time (local), for the edit history where the exact moment matters. */
+function fmtDateTime(iso) {
+  if (!iso) return '';
+  var d = new Date(iso); if (isNaN(d.getTime())) return fmtDate(iso);
+  var p = function (n) { return (n < 10 ? '0' : '') + n; };
+  return p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+}
 /* --- edit history (mock: snapshots kept in memory; GAS keeps them in the sheet) --- */
 function cleanStepsSnap(arr) { return (arr || []).map(function (st) { var o = {}; for (var kk in st) { if (kk.charAt(0) !== '_') o[kk] = st[kk]; } return o; }); }
 function snapshotOf(p) { var c = {}; for (var k in p) { if (k.charAt(0) !== '_') c[k] = p[k]; }
@@ -2108,7 +2117,7 @@ function showHistory(p, h) {
         var v = it.v, cur = it.idx === 0;
         return '<button type="button" class="hh-ver' + (cur ? ' is-current' : '') + '" data-idx="' + it.idx + '">' +
           esc(v.summary || '(no note)') + (cur ? '  · CURRENT (live)' : '') +
-          '<span class="hh-ver__meta">' + esc(displayName(v.by || '')) + ' · ' + fmtDate(v.at) + '</span></button>';
+          '<span class="hh-ver__meta">' + esc(displayName(v.by || '')) + ' · ' + fmtDateTime(v.at) + '</span></button>';
       }).join('') + '</div></div>';
   }).join('') + '</div>';
   var host = Modal.custom('Edit history — ' + esc(p.title),
@@ -2119,13 +2128,13 @@ function showHistory(p, h) {
     var idx = +btn.getAttribute('data-idx');
     if (idx === 0) { Modal.alert('Already current', 'That is the version currently shown — nothing to restore.'); return; }
     var v = h[idx];
-    Modal.confirm('Restore this version?', 'From ' + fmtDate(v.at) + ' by ' + esc(displayName(v.by || '')) + '. The current content will be replaced by this version.', function () {
+    Modal.confirm('Restore this version?', 'From ' + fmtDateTime(v.at) + ' by ' + esc(displayName(v.by || '')) + '. The current content will be replaced by this version.', function () {
       var snap = v.snap ? (typeof v.snap === 'string' ? JSON.parse(v.snap) : v.snap) : null;
-      if (snap) { for (var k in snap) { p[k] = snap[k]; } p._restoreNote = 'Restored from ' + fmtDate(v.at);
+      if (snap) { for (var k in snap) { p[k] = snap[k]; } p._restoreNote = 'Restored from ' + fmtDateTime(v.at);
         openEditor(p.process_id, true);
-        Modal.alert('Restored — one more step', 'Loaded the version from <b>' + fmtDate(v.at) + '</b> into the editor. Nothing is live yet.<br><br>' +
+        Modal.alert('Restored — one more step', 'Loaded the version from <b>' + fmtDateTime(v.at) + '</b> into the editor. Nothing is live yet.<br><br>' +
           '<b>To make it the live version:</b> click <b>Save draft</b> (if it is a draft) or <b>Publish</b>. ' +
-          'The note is pre-filled as “Restored from ' + fmtDate(v.at) + '”, so afterwards the top entry in History (marked CURRENT) — and the version note — will clearly show the live version is this restore.'); }
+          'The note is pre-filled as “Restored from ' + fmtDateTime(v.at) + '”, so afterwards the top entry in History (marked CURRENT) — and the version note — will clearly show the live version is this restore.'); }
     }, { okLabel: 'Restore' });
   }; });
 }
@@ -3675,12 +3684,14 @@ function drawForm() {
     h += '<div class="mk-f"><label for="i_persons">People on this step</label><input id="i_persons" type="number" min="1" step="1" value="' + esc(s.persons == null ? '' : s.persons) + '" placeholder="e.g. 1"><div class="mk-tip">Optional.</div></div>';
     h += '<div class="mk-f"><label>Total working days</label><div class="mk-readonly" id="totalDaysReadout">' + totalDaysText(s) + '</div><div class="mk-tip">Auto = Working days / person × People on this step.</div></div>';
     s.files = s.files || [];
-    h += '<div class="mk-f"><label>Attach related files / links</label><div class="mk-tip" style="margin-top:0;margin-bottom:7px">Paste a share <b>link</b> (Google Drive, Sheet, etc.). Give it a name, then paste the URL. (To attach an image/video, use the box above.)</div><div id="fileList">' + s.files.map(function (f, i) {
+    h += '<div class="mk-f"><label>Attach related files / links</label><div class="mk-tip" style="margin-top:0;margin-bottom:7px"><b>Upload a file</b> (PDF, Word, Excel…) or paste a share <b>link</b> (Google Drive, Sheet, etc.). (To attach an image/video, use the box below.)</div><div id="fileList">' + s.files.map(function (f, i) {
       var bad = f.url && !looksLikeUrl(f.url);
       return '<div class="mk-file-row"><input type="text" data-flabel="' + i + '" value="' + esc(f.label) + '" placeholder="Name">' +
         '<input type="text" data-furl="' + i + '" value="' + esc(f.url || '') + '" placeholder="https://… (optional)"' + (bad ? ' class="mk-file-bad"' : '') + '>' +
         '<button type="button" class="mk-file-del" data-fdel="' + i + '" aria-label="Remove">×</button></div>' + (bad ? '<div class="mk-file-err">Doesn’t look like a link — start with https://</div>' : ''); }).join('') + '</div>' +
-      '<button type="button" class="mk-btn" id="addFile" style="width:100%">+ Add file or link</button></div>';
+      '<div style="display:flex;gap:8px;margin-top:2px"><button type="button" class="mk-btn" id="uploadFile" style="flex:1">⬆ Upload a file</button>' +
+      '<button type="button" class="mk-btn" id="addFile" style="flex:1">+ Add link</button></div>' +
+      '<input type="file" id="fileInput" hidden><div class="mk-tip" id="fileUpMsg" hidden></div></div>';
     s.images = s.images || [];
     h += '<div class="mk-f"><label>Attach guide images / video</label>' +
       '<div class="mk-drop" id="imgDrop" tabindex="0"><b>Click to browse</b>, drag &amp; drop, or press <b>Ctrl+V</b> to paste a screenshot.<br><span style="font-size:11px">Images (PNG / JPG / GIF) or MP4 video.</span></div>' +
@@ -3746,6 +3757,17 @@ function drawForm() {
     F.querySelectorAll('[data-furl]').forEach(function (inp) { inp.oninput = function () { s.files[+inp.getAttribute('data-furl')].url = inp.value; markDirty(); drawForm(); }; });
     F.querySelectorAll('[data-fdel]').forEach(function (btn) { btn.onclick = function () { s.files.splice(+btn.getAttribute('data-fdel'), 1); markDirty(); drawForm(); }; });
     $('addFile').onclick = function () { s.files.push({ label: '', url: '' }); markDirty(); drawForm(); var rows = F.querySelectorAll('[data-flabel]'); if (rows.length) rows[rows.length - 1].focus(); };
+    var upBtn = $('uploadFile'), upIn = $('fileInput'), upMsg = $('fileUpMsg');
+    if (upBtn && upIn) {
+      upBtn.onclick = function () { if (typeof window.__uploadAttachment !== 'function') { Modal.alert('Upload unavailable', 'File upload needs the live app (storage). You can paste a share link instead.'); return; } upIn.click(); };
+      upIn.onchange = function () {
+        var file = upIn.files && upIn.files[0]; if (!file) return;
+        upMsg.hidden = false; upMsg.textContent = 'Uploading “' + file.name + '”…'; upBtn.disabled = true;
+        window.__uploadAttachment(file).then(function (r) {
+          s.files.push({ label: r.name || file.name, url: r.url }); markDirty(); drawForm();
+        }).catch(function (e) { upBtn.disabled = false; upMsg.textContent = 'Upload failed: ' + ((e && e.message) || e); });
+      };
+    }
     F.querySelectorAll('[data-idel]').forEach(function (btn) { btn.onclick = function () { s.images.splice(+btn.getAttribute('data-idel'), 1); markDirty(); drawForm(); }; });
     var drop = $('imgDrop');
     if (drop) {
@@ -3871,7 +3893,14 @@ function wireRichToolbar(ed) {
   if (colors) colors.innerHTML = BRAND_COLORS.map(function (c) {
     return '<button class="al-sw" data-color="' + c[0] + '" title="' + c[1] + '" style="background:' + c[0] + '"></button>'; }).join('');
   bar.querySelectorAll('[data-color]').forEach(function (b) { b.onclick = function () {
-    ed.focus(); restoreSel(); document.execCommand('styleWithCSS', false, true); document.execCommand('foreColor', false, b.getAttribute('data-color')); sync(); }; });
+    var col = b.getAttribute('data-color');
+    ed.focus(); restoreSel(); document.execCommand('styleWithCSS', false, true); document.execCommand('foreColor', false, col);
+    /* colour the list item(s) too, so the bullet / number marker matches the text */
+    var sel = window.getSelection();
+    [sel && sel.anchorNode, sel && sel.focusNode].forEach(function (nd) {
+      while (nd && nd !== ed) { if (nd.nodeType === 1 && nd.tagName === 'LI') { nd.style.color = col; break; } nd = nd.parentNode; }
+    });
+    sync(); }; });
   /* paste an image straight from the clipboard (screenshots) */
   ed.onpaste = function (e) {
     var items = (e.clipboardData || {}).items || [];
@@ -3906,13 +3935,15 @@ function wireRichToolbar(ed) {
   var fs = $('alFont'); if (fs) fs.onchange = function () { if (!fs.value) return; ed.focus(); restoreSel(); document.execCommand('styleWithCSS', false, true); document.execCommand('fontName', false, fs.value); sync(); };
   /* Text-style dropdown: Heading 1–3 / Content (normal paragraph). */
   var blk = $('alBlock'); if (blk) blk.onchange = function () { if (!blk.value) return; ed.focus(); restoreSel(); document.execCommand('formatBlock', false, blk.value); sync(); blk.value = ''; };
+  var aln = $('alAlign'); if (aln) aln.onchange = function () { if (!aln.value) return; ed.focus(); restoreSel(); document.execCommand(aln.value); sync(); aln.value = ''; };
   /* List dropdown / library: "<ul|ol>:<list-style-type>". */
-  function applyListStyle(kind, style) {
+  function applyListStyle(kind, style, start) {
     ed.focus();
     document.execCommand(kind === 'ul' ? 'insertUnorderedList' : 'insertOrderedList');
     var n = window.getSelection().anchorNode, tag = kind.toUpperCase(), el = null;
     while (n && n !== ed) { if (n.nodeType === 1 && n.tagName === tag) { el = n; break; } n = n.parentNode; }
     if (el && style) el.style.listStyleType = style;
+    if (el && tag === 'OL' && start && start > 1) el.setAttribute('start', start); else if (el && tag === 'OL') el.removeAttribute('start');
     sync();
   }
   var lst = $('alList'); if (lst) lst.onchange = function () {
@@ -3941,6 +3972,14 @@ function wireRichToolbar(ed) {
     if (/^[A-Z]\.$/.test(t)) return ['ol', 'upper-alpha'];
     return null;
   }
+  /* The number a trigger represents, so "B." starts at 2, "3." at 3, "iii." at 3. */
+  function triggerStart(t) {
+    if (/^\d+\.$/.test(t)) return parseInt(t, 10) || 1;
+    if (/^i+\.$/.test(t)) return (t.match(/i/g) || []).length || 1;
+    if (/^[a-z]\.$/.test(t)) return t.charCodeAt(0) - 96;
+    if (/^[A-Z]\.$/.test(t)) return t.charCodeAt(0) - 64;
+    return 1;
+  }
   function lineBlock(node) { var n = node; while (n && n.parentNode !== ed && n !== ed) n = n.parentNode; return (n && n !== ed) ? n : null; }
   ed.addEventListener('keydown', function (e) {
     if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) { e.preventDefault(); if (e.shiftKey) uRedo(); else uUndo(); return; }
@@ -3965,7 +4004,7 @@ function wireRichToolbar(ed) {
     }
     node.textContent = node.textContent.slice(sel.anchorOffset);   /* drop the trigger chars */
     var r = document.createRange(); r.setStart(node, 0); r.collapse(true); sel.removeAllRanges(); sel.addRange(r);
-    applyListStyle(spec[0], spec[1]);
+    applyListStyle(spec[0], spec[1], triggerStart(before));
   });
   /* ---- tables ---- */
   function cellFrom() { var n = window.getSelection().anchorNode; while (n && n !== ed) { if (n.nodeType === 1 && (n.tagName === 'TD' || n.tagName === 'TH')) return n; n = n.parentNode; } return null; }
@@ -4353,6 +4392,9 @@ function positionBellPanel() {
   pn.style.overflow = 'visible';
 }
 function wireBell() {
+  /* Guests (external, item-only access) don't get the activity bell. */
+  var bw = document.querySelector('.hb-bellwrap'); if (bw) bw.hidden = isGuest();
+  if (isGuest()) return;
   /* Opening the panel does NOT mark things read — the unread badge and the
      highlighted rows stay until the user clicks "Mark all as read". */
   $('bellBtn').onclick = function (e) { e.stopPropagation(); var pn = $('bellPanel'), willOpen = pn.hidden; renderBellPanel(); pn.hidden = !willOpen; if (willOpen) { positionBellPanel(); } };
