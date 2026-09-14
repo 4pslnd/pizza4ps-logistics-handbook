@@ -2185,9 +2185,13 @@ function rtToolbarHTML() {
     '<button type="button" class="rt-b" data-rt="createLink" title="Insert link">&#128279;</button>';
 }
 /* Wire a contenteditable (rt) + its toolbar (tb). onChange(html) fires on edit. */
+/* Content from the rich editor is HTML (its innerHTML) — which may be tagless
+   but still carry entities, e.g. "C&amp;B". Detect HTML by a tag OR an entity so
+   such content is never re-escaped and shown literally as "C&amp;B". */
+function looksLikeHtml(v) { return /<[a-z!/][\s\S]*>/i.test(v) || /&(amp|lt|gt|nbsp|quot|#\d+|#x[0-9a-f]+);/i.test(v); }
 function attachRichEditor(rt, tb, initial, onChange) {
   var v = initial || '';
-  if (/<[a-z][\s\S]*>/i.test(v)) rt.innerHTML = v; else rt.textContent = v;
+  if (looksLikeHtml(v)) rt.innerHTML = v; else rt.textContent = v;
   var range = null;
   function save() { var sl = window.getSelection(); if (sl && sl.rangeCount && rt.contains(sl.anchorNode)) range = sl.getRangeAt(0).cloneRange(); }
   function restore() { if (range) { var sl = window.getSelection(); sl.removeAllRanges(); sl.addRange(range); } }
@@ -2216,7 +2220,7 @@ function attachRichEditor(rt, tb, initial, onChange) {
 /* Full description may be rich HTML (new) or plain text (old). Render both. */
 function taskHtml(t) {
   t = String(t || '');
-  if (/<[a-z][\s\S]*>/i.test(t)) return t;   /* already HTML from the rich editor */
+  if (looksLikeHtml(t)) return t;   /* already HTML from the rich editor (tag or entity) */
   return t.split('\n').filter(Boolean).map(function (l) {
     return l.trim().indexOf('- ') === 0 ? '<li>' + esc(l.trim().slice(2)) + '</li>' : '<p>' + esc(l) + '</p>';
   }).join('').replace(/(<li>[\s\S]*<\/li>)/, '<ul>$1</ul>');
@@ -2224,7 +2228,7 @@ function taskHtml(t) {
 /* Flatten rich HTML to plain text (for spreadsheet cells). */
 function htmlToText(html) {
   if (!html) return '';
-  if (!/<[a-z][\s\S]*>/i.test(html)) return html;
+  if (!looksLikeHtml(html)) return html;
   var d = document.createElement('div'); d.innerHTML = html;
   d.querySelectorAll('li').forEach(function (li) { li.insertBefore(document.createTextNode('- '), li.firstChild); });
   d.querySelectorAll('li,p,div,br,h1,h2,h3,h4').forEach(function (el) { el.appendChild(document.createTextNode('\n')); });
