@@ -1143,6 +1143,9 @@ textarea{resize:vertical;min-height:60px;line-height:1.5}
         <div class="mk-f"><label for="alSub">Short description</label><input id="alSub"></div>
       </div>
       <div class="al-toolbar" id="alToolbar">
+        <button class="al-tb" id="alUndo" type="button" title="Undo (Ctrl+Z)">&#8630;</button>
+        <button class="al-tb" id="alRedo" type="button" title="Redo (Ctrl+Shift+Z)">&#8631;</button>
+        <span class="al-tb__sep"></span>
         <button class="al-tb" data-cmd="bold" title="Bold"><b>B</b></button>
         <button class="al-tb" data-cmd="italic" title="Italic"><i>I</i></button>
         <button class="al-tb" data-cmd="underline" title="Underline"><u>U</u></button>
@@ -2643,10 +2646,41 @@ function render() {
   else if (view.level === 'process') drawItem();
   drawCrumb();
 }
-function goHome() { view = { level: 'home', pillar: null, proc: null }; render(); window.scrollTo(0, 0); }
-function goPillar(key) { view = { level: 'pillar', pillar: key, proc: null }; render(); window.scrollTo(0, 0); }
-function goProcess(key, pid) { viewVariant = null; viewMode = 'diagram'; compareWith = null; view = { level: 'process', pillar: key, proc: pid }; render(); window.scrollTo(0, 0); }
-function goAdmin() { view = { level: 'admin', pillar: null, proc: null }; render(); window.scrollTo(0, 0); }
+function goHome() { view = { level: 'home', pillar: null, proc: null }; render(); syncHash(); window.scrollTo(0, 0); }
+function goPillar(key) { view = { level: 'pillar', pillar: key, proc: null }; render(); syncHash(); window.scrollTo(0, 0); }
+function goProcess(key, pid) { viewVariant = null; viewMode = 'diagram'; compareWith = null; view = { level: 'process', pillar: key, proc: pid }; render(); syncHash(); window.scrollTo(0, 0); }
+function goAdmin() { view = { level: 'admin', pillar: null, proc: null }; render(); syncHash(); window.scrollTo(0, 0); }
+
+/* ---- shareable deep links (URL hash reflects the current page) ------------- */
+var _hashLock = false;
+function hashForView() {
+  function itemSeg() {
+    var p = DOC.processes.filter(function (x) { return x.process_id === view.proc; })[0];
+    var s = p ? slug(p.title) : '';
+    return '#/' + encodeURIComponent(view.pillar || '') + '/' + (s ? s + '~' : '') + encodeURIComponent(view.proc);
+  }
+  if (view.level === 'process') return itemSeg();
+  if (view.level === 'edit') return itemSeg() + '/edit';
+  if (view.level === 'pillar') return '#/' + encodeURIComponent(view.pillar || '');
+  if (view.level === 'admin') return '#/admin';
+  return '#/';
+}
+function syncHash() { var h = hashForView(); if ((location.hash || '') !== h) { _hashLock = true; try { location.hash = h; } catch (e) { _hashLock = false; } } }
+function applyHash() {
+  var raw = (location.hash || '').replace(/^#\/?/, '');
+  var parts = raw.split('/').filter(Boolean).map(function (s) { try { return decodeURIComponent(s); } catch (e) { return s; } });
+  if (!parts.length) { view = { level: 'home', pillar: null, proc: null }; render(); window.scrollTo(0, 0); return; }
+  if (parts[0] === 'admin') { view = { level: 'admin', pillar: null, proc: null }; render(); window.scrollTo(0, 0); return; }
+  var pillar = parts[0];
+  if (parts.length === 1) { view = { level: 'pillar', pillar: pillar, proc: null }; render(); window.scrollTo(0, 0); return; }
+  var seg = parts[1], pid = seg.indexOf('~') >= 0 ? seg.slice(seg.lastIndexOf('~') + 1) : seg;
+  var item = DOC.processes.filter(function (x) { return x.process_id === pid; })[0];
+  if (!item) { view = { level: 'pillar', pillar: pillar, proc: null }; render(); window.scrollTo(0, 0); return; }
+  if (parts[2] === 'edit' && canEditItem(item)) { openEditor(pid); return; }
+  viewVariant = null; viewMode = 'diagram'; compareWith = null;
+  view = { level: 'process', pillar: item.pillar || pillar, proc: pid }; render(); window.scrollTo(0, 0);
+}
+window.addEventListener('hashchange', function () { if (_hashLock) { _hashLock = false; return; } applyHash(); });
 
 function drawCrumb() {
   var C = $('crumb');
@@ -3304,10 +3338,10 @@ function openEditor(pid, skipAutosave) {
   returnTo = { level: 'process', pillar: P.pillar, proc: pid };
   dirty = false;
   view = { level: 'edit', pillar: P.pillar, proc: pid };
-  render();
+  render(); syncHash();
   if (!skipAutosave) offerAutosaveRestore(pid);
 }
-function backFromEditor() { EF = P; editVariant = null; view = returnTo || { level: 'pillar', pillar: P && P.pillar, proc: null }; render(); window.scrollTo(0, 0); }
+function backFromEditor() { EF = P; editVariant = null; view = returnTo || { level: 'pillar', pillar: P && P.pillar, proc: null }; render(); syncHash(); window.scrollTo(0, 0); }
 function drawEditor() {
   var isAlign = kindOf(P) === 'alignment';
   $('editorProcess').hidden = isAlign;
@@ -3794,7 +3828,17 @@ function wireRichToolbar(ed) {
   /* Keep the text selection when clicking a toolbar BUTTON, but let a <select>
      (font) open normally — including it here is what stopped the font dropdown. */
   bar.onmousedown = function (e) { if (e.target.closest('[data-cmd],button,[data-color]') && !e.target.closest('select')) e.preventDefault(); };
-  function sync() { P.body = ed.innerHTML; markDirty(); }
+  /* Undo / redo stack (structural edits — tables, lists, etc. — don't go into
+     the browser's native undo, so we keep our own history of the document). */
+  var uHist = [ed.innerHTML], uIdx = 0, uTimer = null;
+  function uSnap() { var cur = ed.innerHTML; if (uHist[uIdx] === cur) return; uHist = uHist.slice(0, uIdx + 1); uHist.push(cur); if (uHist.length > 200) uHist.shift(); uIdx = uHist.length - 1; }
+  function uApply(html) { ed.innerHTML = html; P.body = html; markDirty(); }
+  function uUndo() { if (uTimer) { clearTimeout(uTimer); uTimer = null; uSnap(); } if (uIdx > 0) { uIdx--; uApply(uHist[uIdx]); } }
+  function uRedo() { if (uIdx < uHist.length - 1) { uIdx++; uApply(uHist[uIdx]); } }
+  ed.addEventListener('input', function () { clearTimeout(uTimer); uTimer = setTimeout(uSnap, 350); });
+  function sync() { P.body = ed.innerHTML; markDirty(); uSnap(); }
+  var ub = $('alUndo'); if (ub) ub.onclick = function () { ed.focus(); uUndo(); };
+  var rb = $('alRedo'); if (rb) rb.onclick = function () { ed.focus(); uRedo(); };
   /* Remember the last selection inside the editor so actions that steal focus
      (font dropdown, link/attach dialogs) still apply to the right text. */
   var savedRange = null;
@@ -3877,6 +3921,8 @@ function wireRichToolbar(ed) {
   }
   function lineBlock(node) { var n = node; while (n && n.parentNode !== ed && n !== ed) n = n.parentNode; return (n && n !== ed) ? n : null; }
   ed.addEventListener('keydown', function (e) {
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) { e.preventDefault(); if (e.shiftKey) uRedo(); else uUndo(); return; }
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || e.key === 'Y')) { e.preventDefault(); uRedo(); return; }
     if (e.key === 'Tab') { e.preventDefault(); document.execCommand(e.shiftKey ? 'outdent' : 'indent'); sync(); return; }
     if (e.key !== ' ') return;
     var sel = window.getSelection(); if (!sel || !sel.rangeCount || !sel.isCollapsed) return;
@@ -4324,7 +4370,7 @@ function bootApp() {
   wireBrand();
   wireBell();
   wireEditorChrome();
-  goHome();
+  applyHash();   /* honour a shared deep link on load; falls back to Home */
 }
 if (typeof GAS_MODE === 'undefined' || !GAS_MODE) bootApp();
 
