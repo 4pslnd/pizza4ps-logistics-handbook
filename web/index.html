@@ -1220,13 +1220,15 @@ var MARK_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABDgAAAM7CAYAA
     return base;
   }
 
+  function asList(v) { return v == null || v === '' ? [] : (Array.isArray(v) ? v.filter(Boolean) : [v]); }
   function outEdges(step) {
     var n = step.next;
     if (!n) return [];
     if (Array.isArray(n)) return n.filter(Boolean).map(function (t) { return { to: t, label: null }; });
     var e = [];
-    if (n.yes) e.push({ to: n.yes, label: 'Yes' });
-    if (n.no) e.push({ to: n.no, label: 'No' });
+    /* A decision's Yes / No branch may each list several targets. */
+    asList(n.yes).forEach(function (t) { e.push({ to: t, label: 'Yes' }); });
+    asList(n.no).forEach(function (t) { e.push({ to: t, label: 'No' }); });
     return e;
   }
 
@@ -1899,6 +1901,9 @@ function variantsOf(p) { return (p && p.variants) || []; }
 function findVariant(p, key) { var vs = variantsOf(p); for (var i = 0; i < vs.length; i++) if (vs[i].key === key) return vs[i]; return null; }
 /* The flow object ({steps,lanes,owners}) for a given variant key; base = p itself. */
 function flowOf(p, key) { var v = key ? findVariant(p, key) : null; return v || p; }
+/* A decision branch (yes/no) may target several steps at once. Accept both the
+   legacy single-id form and the new array form, always returning a clean array. */
+function branchList(v) { return v == null || v === '' ? [] : (Array.isArray(v) ? v.filter(Boolean) : [v]); }
 var homeSearch = '', homeMode = 'pillar', pillarSearch = {}, picOpen = {}, homePicFilter = '';
 var pillarPicFilter = {}, pillarTrashOpen = {};
 function visibleHome(p) { return canSee(p) && (!homePicFilter || (p.pic || '') === homePicFilter); }
@@ -2279,9 +2284,9 @@ var CSV_COLUMNS = ['Step #', 'Step name', 'Type', 'Owner', 'Timeline', 'Working 
 function nextStepLabel(proc, step) {
   var byId = {}; proc.steps.forEach(function (x) { byId[x.id] = x.label; });
   if (step.type === 'decision') {
-    var y = step.next && step.next.yes ? byId[step.next.yes] : null;
-    var n = step.next && step.next.no ? byId[step.next.no] : null;
-    return (y ? 'If approved: ' + y : '') + (y && n ? '; ' : '') + (n ? 'If rejected: ' + n : '');
+    var y = branchList(step.next && step.next.yes).map(function (id) { return byId[id]; }).filter(Boolean);
+    var n = branchList(step.next && step.next.no).map(function (id) { return byId[id]; }).filter(Boolean);
+    return (y.length ? 'If approved: ' + y.join(', ') : '') + (y.length && n.length ? '; ' : '') + (n.length ? 'If rejected: ' + n.join(', ') : '');
   }
   return (step.next || []).map(function (id) { return byId[id]; }).filter(Boolean).join('; ');
 }
@@ -2308,8 +2313,8 @@ var XLSX_HINTS = {
   timeline: "Optional timing text, e.g. '15-20 monthly'.",
   phase: 'Optional: Before, During or After. Groups steps into bands on the diagram.',
   next: 'Action steps: the step_id(s) this goes to next. Several: separate with commas.',
-  yes: 'Decision steps only: the step_id to go to when Approved.',
-  no: 'Decision steps only: the step_id to go to when Rejected.',
+  yes: 'Decision steps only: step_id(s) to go to when Approved. Several: separate with commas.',
+  no: 'Decision steps only: step_id(s) to go back to when Rejected. Several: separate with commas.',
   working_days: 'Working days ONE person spends on this step (a number). Required for action/decision.',
   persons: 'People on this step (a number). Required for action/decision.',
   files: "Optional links: each as 'Label|https://url'. Several: separate with ';'.",
@@ -2323,7 +2328,7 @@ function processToAOA(proc) {
   var aoa = [XLSX_COLS];
   (proc.steps || []).forEach(function (s) {
     var next = '', yes = '', no = '';
-    if (s.type === 'decision') { yes = (s.next && s.next.yes) || ''; no = (s.next && s.next.no) || ''; }
+    if (s.type === 'decision') { yes = branchList(s.next && s.next.yes).join(','); no = branchList(s.next && s.next.no).join(','); }
     else next = (Array.isArray(s.next) ? s.next.join(',') : (s.next || ''));
     aoa.push([s.id, s.lane || '', s.type || 'action', s.label || '', htmlToText(s.task), s.timeline || '', s.phase || '', next, yes, no,
       s.workingDays == null ? '' : s.workingDays, s.persons == null ? '' : s.persons, encodeFilesCell(s.files), s.note || '']);
@@ -2414,7 +2419,9 @@ function importCSV(pillarKey) {
         if (seen[id]) { var k = 2; while (seen[id + '_' + k]) k++; id = id + '_' + k; } seen[id] = 1;
         var st = { id: id, lane: g(ci.pic) || g(ci.lane) || 'Intern', type: type, label: g(ci.label), task: g(ci.task), timeline: g(ci.timeline), phase: g(ci.phase) || '', note: g(ci.note), files: parseFilesCell(g(ci.files)), images: [],
           workingDays: g(ci.days) === '' ? null : parseFloat(g(ci.days)), persons: g(ci.persons) === '' ? null : parseInt(g(ci.persons), 10) };
-        if (type === 'decision') st.next = { yes: g(ci.yes) ? slug(g(ci.yes)) : null, no: g(ci.no) ? slug(g(ci.no)) : null };
+        if (type === 'decision') st.next = {
+          yes: g(ci.yes).split(',').map(function (x) { return slug(x.trim()); }).filter(Boolean),
+          no: g(ci.no).split(',').map(function (x) { return slug(x.trim()); }).filter(Boolean) };
         else if (type === 'end') st.next = [];
         else st.next = g(ci.next).split(',').map(function (x) { return slug(x.trim()); }).filter(Boolean);
         return st;
@@ -2456,9 +2463,10 @@ function validateGrouped() {
     var t = [];
     function add(m) { forStep(s).msgs.push(m); }
     if (s.type === 'decision') {
-      if (!s.next || !s.next.yes) add('No “Approved” branch chosen.');
-      if (!s.next || !s.next.no) add('No “Rejected” branch chosen.');
-      if (s.next) { if (s.next.yes) t.push(s.next.yes); if (s.next.no) t.push(s.next.no); }
+      var yesT = branchList(s.next && s.next.yes), noT = branchList(s.next && s.next.no);
+      if (!yesT.length) add('No “Approved” branch chosen.');
+      if (!noT.length) add('No “Rejected” branch chosen.');
+      t = yesT.concat(noT);
     } else if (s.type !== 'end') { t = s.next || []; if (!t.length) add('No next step chosen.'); }
     t.forEach(function (x) { if (!ids[x]) add('Points to a step that no longer exists.'); });
     if (!s.label || !s.label.trim()) add('Step has no name.');
@@ -3338,7 +3346,7 @@ function removeStep(id) {
   Modal.confirm('Delete this step?', '"' + esc(s.label || s.id) + '" will be removed, and any arrows pointing to it will be cleared.', function () {
     EF.steps = EF.steps.filter(function (x) { return x.id !== id; });
     EF.steps.forEach(function (x) { if (Array.isArray(x.next)) x.next = x.next.filter(function (t) { return t !== id; });
-      else if (x.next) { if (x.next.yes === id) x.next.yes = null; if (x.next.no === id) x.next.no = null; } });
+      else if (x.next) { x.next.yes = branchList(x.next.yes).filter(function (t) { return t !== id; }); x.next.no = branchList(x.next.no).filter(function (t) { return t !== id; }); } });
     if (sel === id) sel = EF.steps[0] && EF.steps[0].id;
     markDirty(); draw();
   }, { danger: true, okLabel: 'Delete' });
@@ -3381,7 +3389,7 @@ function drawDiagram() {
 }
 function wouldLoseData(s, newType) {
   if (s.type === newType) return false;
-  if (s.type === 'decision' && (s.next && (s.next.yes || s.next.no))) return true;
+  if (s.type === 'decision' && (branchList(s.next && s.next.yes).length || branchList(s.next && s.next.no).length)) return true;
   if (s.type === 'action' && Array.isArray(s.next) && s.next.length && newType !== 'action') return true;
   return false;
 }
@@ -3390,9 +3398,9 @@ function applyType(s, newType) {
   if (newType === 'end' && EF.steps.some(function (x) { return x.type === 'end' && x.id !== s.id; })) { Modal.alert('Only one End step', 'A process can only have one "End" step.'); return; }
   function commit() {
     s.type = newType;
-    if (newType === 'decision') { if (Array.isArray(s.next)) s.next = { yes: s.next[0] || null, no: null }; }
+    if (newType === 'decision') { if (Array.isArray(s.next)) s.next = { yes: s.next.slice(), no: [] }; }
     else if (newType === 'end') s.next = [];
-    else if (!Array.isArray(s.next)) s.next = s.next && s.next.yes ? [s.next.yes] : [];
+    else if (!Array.isArray(s.next)) s.next = branchList(s.next && s.next.yes).concat(branchList(s.next && s.next.no));
     markDirty(); draw();
   }
   if (wouldLoseData(s, newType)) Modal.confirm('Change step type?', 'Switching away from Review clears its Approved/Rejected arrows. Continue?', commit, { danger: true, okLabel: 'Change type' });
@@ -3415,8 +3423,13 @@ function drawForm() {
   h += '<div class="mk-f"><label>Step type' + req + '</label><div class="mk-types">' + types.map(function (t) {
     return '<button type="button" class="mk-type" data-type="' + t[0] + '" aria-pressed="' + (s.type === t[0]) + '">' + t[1] + '</button>'; }).join('') + '</div></div>';
   if (s.type === 'decision') {
-    h += '<div class="mk-f"><label for="i_yes">If approved, go to' + req + '</label><select id="i_yes">' + opt(others, s.next && s.next.yes) + '</select></div>';
-    h += '<div class="mk-f"><label for="i_no">If rejected, go back to' + req + '</label><select id="i_no">' + opt(others, s.next && s.next.no) + '</select></div>';
+    var yesSel = branchList(s.next && s.next.yes), noSel = branchList(s.next && s.next.no);
+    h += '<div class="mk-f"><label>If approved, go to' + req + '</label><div class="mk-nexts">' + (others.length ? others.map(function (o) {
+      return '<label class="mk-nx"><input type="checkbox" data-yes="' + o.id + '"' + (yesSel.indexOf(o.id) >= 0 ? ' checked' : '') + '><span>' + esc(nameOf(o)) + '</span></label>'; }).join('') : '<div class="mk-empty">No other steps</div>') +
+      '</div><div class="mk-tip">Tick one or more steps to go to when approved.</div></div>';
+    h += '<div class="mk-f"><label>If rejected, go back to' + req + '</label><div class="mk-nexts">' + (others.length ? others.map(function (o) {
+      return '<label class="mk-nx"><input type="checkbox" data-no="' + o.id + '"' + (noSel.indexOf(o.id) >= 0 ? ' checked' : '') + '><span>' + esc(nameOf(o)) + '</span></label>'; }).join('') : '<div class="mk-empty">No other steps</div>') +
+      '</div><div class="mk-tip">Tick one or more steps to go back to when rejected.</div></div>';
   } else if (s.type !== 'end') {
     var cur = s.next || [];
     h += '<div class="mk-f"><label>What happens next' + req + '</label><div class="mk-nexts">' + (others.length ? others.map(function (o) {
@@ -3485,7 +3498,12 @@ function drawForm() {
   var phEl = $('i_phase'); if (phEl) phEl.onchange = function () { s.phase = phEl.value || ''; markDirty(); draw(); };
   function refreshTotalDays() { var el = $('totalDaysReadout'); if (el) el.innerHTML = totalDaysText(s); }
   var stakeEl = $('i_stake'); if (stakeEl) stakeEl.oninput = function () { s.stakeholderDetail = stakeEl.value; markDirty(); renderLivePreview(); };
-  ['i_yes', 'i_no'].forEach(function (k) { var e = $(k); if (!e) return; e.onchange = function () { s.next = s.next || {}; s.next[k === 'i_yes' ? 'yes' : 'no'] = e.value || null; markDirty(); draw(); }; });
+  F.querySelectorAll('[data-yes]').forEach(function (c) { c.onchange = function () {
+    s.next = (s.next && !Array.isArray(s.next)) ? s.next : {};
+    s.next.yes = Array.prototype.map.call(F.querySelectorAll('[data-yes]:checked'), function (x) { return x.getAttribute('data-yes'); }); markDirty(); draw(); }; });
+  F.querySelectorAll('[data-no]').forEach(function (c) { c.onchange = function () {
+    s.next = (s.next && !Array.isArray(s.next)) ? s.next : {};
+    s.next.no = Array.prototype.map.call(F.querySelectorAll('[data-no]:checked'), function (x) { return x.getAttribute('data-no'); }); markDirty(); draw(); }; });
   F.querySelectorAll('[data-owner]').forEach(function (cb) { cb.onchange = function () {
     var names = Array.prototype.map.call(F.querySelectorAll('[data-owner]:checked'), function (x) { return x.getAttribute('data-owner'); });
     if (!names.length) { cb.checked = true; Modal.alert('Pick at least one', 'A step needs at least one owner.'); return; }
@@ -3678,7 +3696,7 @@ function wireEditorChrome() {
     if (!P || kindOf(P) !== 'process') return;
     var t = b.getAttribute('data-add'), base = 'new_step', id = base, i = 2, taken = {};
     EF.steps.forEach(function (s) { taken[s.id] = 1; }); while (taken[id]) id = base + '_' + (i++);
-    EF.steps.push({ id: id, label: t === 'decision' ? 'Review' : 'New step', lane: EF.owners[0] || EF.lanes[0] || 'Intern', type: t, next: t === 'decision' ? { yes: null, no: null } : [], task: '', timeline: '', files: [], images: [], note: '' });
+    EF.steps.push({ id: id, label: t === 'decision' ? 'Review' : 'New step', lane: EF.owners[0] || EF.lanes[0] || 'Intern', type: t, next: t === 'decision' ? { yes: [], no: [] } : [], task: '', timeline: '', files: [], images: [], note: '' });
     sel = id; markDirty(); draw(); }; });
   $('backToView').onclick = function () {
     if (dirty) Modal.confirm('Leave without saving?', 'You have unsaved changes. Leaving keeps them only in this browser tab.', function () { backFromEditor(); }, { okLabel: 'Leave' });
