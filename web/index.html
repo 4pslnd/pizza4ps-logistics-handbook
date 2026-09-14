@@ -1276,6 +1276,49 @@ var MARK_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABDgAAAM7CAYAA
     return depth;
   }
 
+  /* Row assignment (transitive-reduction longest path). A step normally sits one
+     row below every step feeding it (longest path — keeps sequences reading top
+     to bottom). BUT if one predecessor is itself downstream of another
+     predecessor — e.g. Update BIPO → {Designations, Weekly} and Designations →
+     Weekly — that "redundant" predecessor is placed on the SAME row instead of
+     one below, so parallel steps that fan out from one step line up on a row and
+     the sibling→sibling link becomes a short sideways arrow. No edge ever points
+     upward. */
+  function assignDepthTR(steps, byId, back, startId) {
+    var indeg = {}, preds = {};
+    steps.forEach(function (s) { indeg[s.id] = 0; preds[s.id] = []; });
+    steps.forEach(function (s) {
+      outEdges(s).forEach(function (e) {
+        if (byId[e.to] && !back[s.id + '>' + e.to]) { indeg[e.to]++; preds[e.to].push(s.id); }
+      });
+    });
+    /* topological order */
+    var indeg2 = {}; steps.forEach(function (s) { indeg2[s.id] = indeg[s.id]; });
+    var q = steps.filter(function (s) { return indeg2[s.id] === 0; }).map(function (s) { return s.id; });
+    if (!q.length) q = [startId];
+    var order = [];
+    while (q.length) {
+      var id = q.shift(); order.push(id);
+      outEdges(byId[id] || {}).forEach(function (e) { if (byId[e.to] && !back[id + '>' + e.to] && --indeg2[e.to] === 0) q.push(e.to); });
+    }
+    steps.forEach(function (s) { if (order.indexOf(s.id) < 0) order.push(s.id); });   /* any left by cycles */
+    var depth = {}, anc = {};
+    order.forEach(function (id) {
+      var ps = preds[id] || [];
+      var ancSet = {}; ps.forEach(function (p) { ancSet[p] = 1; var ap = anc[p]; if (ap) for (var k in ap) ancSet[k] = 1; });
+      anc[id] = ancSet;
+      var lvl = 0;
+      ps.forEach(function (p) {
+        /* p is redundant when another predecessor o is an ancestor of p (p sits
+           on a chain below o) — then N lines up level with p, not one below. */
+        var redundant = ps.some(function (o) { return o !== p && anc[p] && anc[p][o]; });
+        lvl = Math.max(lvl, redundant ? (depth[p] || 0) : (depth[p] || 0) + 1);
+      });
+      depth[id] = lvl;
+    });
+    return depth;
+  }
+
   /* Flow order: the same depth-first pass layout() uses to assign rows,
      exposed standalone so the Steps list can sort by "where a step sits in
      the flow" instead of "when it was added". Parallel steps (same depth)
@@ -1299,7 +1342,10 @@ var MARK_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABDgAAAM7CAYAA
     var startId = (steps.find(function (s) { return s.type === 'start'; }) || steps[0]).id;
 
     var back = findBackEdges(steps, byId, startId);
-    var depth = assignDepth(steps, byId, back, startId);
+    /* Rows: transitive-reduction longest path — parallel branches from one step
+       line up on the same row, sequences still read top to bottom (see
+       assignDepthTR). */
+    var depth = assignDepthTR(steps, byId, back, startId);
 
     var hasPhase = steps.some(function (s) { return s.phase; });
     var PHASE_W = hasPhase ? 92 : 0;
@@ -1412,13 +1458,22 @@ var MARK_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABDgAAAM7CAYAA
     var backSeen = 0;
     steps.forEach(function (s) {
       var a = pos[s.id]; if (!a) return;
-      var fwd = [], bk = [];
+      var fwd = [], bk = [], side = [];
       outEdges(s).forEach(function (e) {
         var b = pos[e.to]; if (!b) return;
-        var isBack = !!back[s.id + '>' + e.to] || b.depth <= a.depth;
-        (isBack ? bk : fwd).push({ e: e, b: b });
+        if (!!back[s.id + '>' + e.to] || b.depth < a.depth) bk.push({ e: e, b: b });      /* goes up → channel */
+        else if (b.depth === a.depth) side.push({ e: e, b: b });                          /* same row → sideways */
+        else fwd.push({ e: e, b: b });                                                    /* goes down */
       });
       var x1 = a.x + a.w / 2, y1 = a.y + a.h;
+      /* Same-row link (e.g. one parallel step feeding the next): a short
+         horizontal arrow straight between the two boxes, arrowhead into target. */
+      side.forEach(function (f) {
+        var b = f.b, y = a.y + a.h / 2, sx, tx;
+        if (b.x >= a.x) { sx = a.x + a.w; tx = b.x; } else { sx = a.x; tx = b.x + b.w; }
+        var path = 'M' + sx + ',' + (a.y + a.h / 2) + ' L' + tx + ',' + (b.y + b.h / 2);
+        conns.push({ from: s.id, to: f.e.to, path: path, label: f.e.label, labelPos: { x: (sx + tx) / 2, y: y - 8 }, back: false });
+      });
       /* Group forward edges by the row they land on. Several children that share
          a row (a fork across PICs) are fed by ONE horizontal bus with a short
          vertical drop into each box — the arrowhead only lands where it enters a
@@ -1436,15 +1491,27 @@ var MARK_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABDgAAAM7CAYAA
           });
         } else {
           var f = group[0], b = f.b, x2 = b.x + b.w / 2, y2 = b.y, path, lp;
-          if (x1 === x2) {
-            path = 'M' + x1 + ',' + y1 + ' L' + x2 + ',' + y2;
-            lp = { x: x1 + 10, y: (y1 + y2) / 2 - 8 };
+          if (b.depth - a.depth >= 2 && x1 !== x2) {
+            /* Long jump across several rows to another lane: route it down the
+               reserved channel on the right instead of straight down the target
+               column, where it would cut through the steps (and their arrows)
+               sitting in between. */
+            var sx = a.x + a.w, sy = a.y + a.h / 2;
+            var channelX = rightEdge + BACK_GAP + (backSeen++) * BACK_GAP;
+            var tx = b.x + b.w, ty = b.y + b.h / 2;
+            path = 'M' + sx + ',' + sy + ' L' + channelX + ',' + sy + ' L' + channelX + ',' + ty + ' L' + tx + ',' + ty;
+            conns.push({ from: s.id, to: f.e.to, path: path, label: f.e.label, labelPos: { x: channelX - 6, y: (sy + ty) / 2 - 8 }, back: true });
           } else {
-            var yBend = y1 + Math.min(ROW_GAP * 0.55, Math.max(18, (y2 - y1) / 2));
-            path = 'M' + x1 + ',' + y1 + ' L' + x1 + ',' + yBend + ' L' + x2 + ',' + yBend + ' L' + x2 + ',' + y2;
-            lp = { x: (x1 + x2) / 2 + 10, y: yBend - 8 };
+            if (x1 === x2) {
+              path = 'M' + x1 + ',' + y1 + ' L' + x2 + ',' + y2;
+              lp = { x: x1 + 10, y: (y1 + y2) / 2 - 8 };
+            } else {
+              var yBend = y1 + Math.min(ROW_GAP * 0.55, Math.max(18, (y2 - y1) / 2));
+              path = 'M' + x1 + ',' + y1 + ' L' + x1 + ',' + yBend + ' L' + x2 + ',' + yBend + ' L' + x2 + ',' + y2;
+              lp = { x: (x1 + x2) / 2 + 10, y: yBend - 8 };
+            }
+            conns.push({ from: s.id, to: f.e.to, path: path, label: f.e.label, labelPos: lp, back: false });
           }
-          conns.push({ from: s.id, to: f.e.to, path: path, label: f.e.label, labelPos: lp, back: false });
         }
       });
       bk.forEach(function (f) {
