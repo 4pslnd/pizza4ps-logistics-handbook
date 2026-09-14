@@ -1302,6 +1302,34 @@ var MARK_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABDgAAAM7CAYAA
     var hasPhase = steps.some(function (s) { return s.phase; });
     var PHASE_W = hasPhase ? 92 : 0;
 
+    /* --- Phase-grouped rows (Cách A) ---------------------------------------
+       Row = phase first, depth second: every box of an earlier phase sits above
+       every box of a later phase, so a step never lands in the wrong phase band.
+       A step with no phase rides along with the step before it in flow order
+       (Cách 1); Start/End inherit the first/last phase and so anchor top/bottom. */
+    var flowSeq = steps.map(function (s, i) { return { s: s, d: depth[s.id], i: i }; })
+      .sort(function (a, b) { return a.d - b.d || a.i - b.i; }).map(function (x) { return x.s; });
+    var phaseSeq = [], effPhase = {}, _lastPhase = '';
+    flowSeq.forEach(function (s) { if (s.phase && phaseSeq.indexOf(s.phase) < 0) phaseSeq.push(s.phase); });
+    _lastPhase = phaseSeq[0] || '';
+    flowSeq.forEach(function (s) { effPhase[s.id] = s.phase || _lastPhase; if (s.phase) _lastPhase = s.phase; });
+    var row = {};
+    if (hasPhase) {
+      var byPhase = {};
+      flowSeq.forEach(function (s) { (byPhase[effPhase[s.id]] = byPhase[effPhase[s.id]] || []).push(s); });
+      var rowOff = 0;
+      phaseSeq.forEach(function (p) {
+        var ns = byPhase[p] || [];
+        var ds = ns.map(function (s) { return depth[s.id]; }).sort(function (a, b) { return a - b; });
+        var localOf = {}, li = -1, prevD = null;
+        ds.forEach(function (d) { if (d !== prevD) { li++; prevD = d; } localOf[d] = li; });
+        ns.forEach(function (s) { row[s.id] = rowOff + localOf[depth[s.id]]; });
+        rowOff += (li + 1);
+      });
+    } else {
+      steps.forEach(function (s) { row[s.id] = depth[s.id]; });
+    }
+
     var laneNames = spec.lanes.filter(function (L) {
       return steps.some(function (s) { return s.lane === L; });
     });
@@ -1311,7 +1339,7 @@ var MARK_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABDgAAAM7CAYAA
        on the same row (parallel siblings), side by side. */
     var slotCount = {}, maxSlots = {}, laneNodeW = {};
     steps.forEach(function (s) {
-      var k = s.lane + '@' + depth[s.id];
+      var k = s.lane + '@' + row[s.id];
       slotCount[k] = (slotCount[k] || 0) + 1;
       maxSlots[s.lane] = Math.max(maxSlots[s.lane] || 1, slotCount[k]);
       var w = nodeSize(s.type).w;
@@ -1327,13 +1355,13 @@ var MARK_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABDgAAAM7CAYAA
     });
     var laneLeft = {}; lanes.forEach(function (l) { laneLeft[l.label] = l; });
 
-    /* Row height per depth: the tallest shape occupying that row, from any lane. */
+    /* Row height per row: the tallest shape occupying that row, from any lane. */
     var rowH = {};
     steps.forEach(function (s) {
       var h = stepH(s);
-      rowH[depth[s.id]] = Math.max(rowH[depth[s.id]] || 0, h);
+      rowH[row[s.id]] = Math.max(rowH[row[s.id]] || 0, h);
     });
-    var maxDepth = 0; steps.forEach(function (s) { maxDepth = Math.max(maxDepth, depth[s.id]); });
+    var maxDepth = 0; steps.forEach(function (s) { maxDepth = Math.max(maxDepth, row[s.id]); });
     var rowTop = {}, top = CANVAS_PAD;
     for (var d = 0; d <= maxDepth; d++) {
       rowTop[d] = top;
@@ -1342,7 +1370,7 @@ var MARK_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABDgAAAM7CAYAA
 
     var used = {};
     var nodes = steps.map(function (s) {
-      var d = depth[s.id], k = s.lane + '@' + d;
+      var d = row[s.id], k = s.lane + '@' + d;
       var slot = used[k] = (used[k] == null ? 0 : used[k] + 1);
       var lane = laneLeft[s.lane];
       var size = nodeSize(s.type); var nh = stepH(s);
@@ -1361,14 +1389,11 @@ var MARK_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABDgAAAM7CAYAA
 
     var phases = [];
     if (hasPhase) {
-      /* order phases by first appearance in the flow (top-to-bottom), so custom
-         phase names work — not just Before/During/After */
-      var order = [], seen = {};
-      nodes.slice().sort(function (a, b) { return a.y - b.y || a.x - b.x; }).forEach(function (n) {
-        var ph = n.detail && n.detail.phase; if (ph && !seen[ph]) { seen[ph] = 1; order.push(ph); }
-      });
-      order.forEach(function (ph) {
-        var ns = nodes.filter(function (n) { return (n.detail && n.detail.phase) === ph; });
+      /* Bands follow the phase-grouped rows, using each step's effective phase
+         (so a no-phase step shows inside the band it rides along with). Rows are
+         grouped by phase, so these bands are contiguous and never overlap. */
+      phaseSeq.forEach(function (ph) {
+        var ns = nodes.filter(function (n) { return effPhase[n.id] === ph; });
         if (!ns.length) return;
         var top = Math.min.apply(null, ns.map(function (n) { return n.y; }));
         var bot = Math.max.apply(null, ns.map(function (n) { return n.y + n.h; }));
@@ -1385,17 +1410,26 @@ var MARK_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABDgAAAM7CAYAA
     var backSeen = 0;
     steps.forEach(function (s) {
       var a = pos[s.id];
+      var fwdIdx = 0;
       outEdges(s).forEach(function (e) {
         var b = pos[e.to]; if (!a || !b) return;
         var isBack = !!back[s.id + '>' + e.to] || b.depth <= a.depth;
         var path, lp;
         if (!isBack) {
           var x1 = a.x + a.w / 2, y1 = a.y + a.h, x2 = b.x + b.w / 2, y2 = b.y;
-          var midY = y1 + Math.max(18, (y2 - y1) / 2);
-          path = (x1 === x2)
-            ? 'M' + x1 + ',' + y1 + ' L' + x2 + ',' + y2
-            : 'M' + x1 + ',' + y1 + ' L' + x1 + ',' + midY + ' L' + x2 + ',' + midY + ' L' + x2 + ',' + y2;
-          lp = { x: (x1 + x2) / 2 + 10, y: midY - 8 };
+          if (x1 === x2) {
+            path = 'M' + x1 + ',' + y1 + ' L' + x2 + ',' + y2;
+            lp = { x: x1 + 10, y: (y1 + y2) / 2 - 8 };
+          } else {
+            /* Bend in the gap just below the source (never at the geometric
+               midpoint, which for a multi-row skip lands on another step's row
+               and makes the arrow appear to run through it), then drop straight
+               down the target's own column. Multiple out-edges fan apart. */
+            var yBend = y1 + Math.min(ROW_GAP * 0.55, Math.max(18, (y2 - y1) / 2)) + fwdIdx * 8;
+            path = 'M' + x1 + ',' + y1 + ' L' + x1 + ',' + yBend + ' L' + x2 + ',' + yBend + ' L' + x2 + ',' + y2;
+            lp = { x: (x1 + x2) / 2 + 10, y: yBend - 8 };
+          }
+          fwdIdx++;
         } else {
           var sx = a.x + a.w, sy = a.y + a.h / 2;
           var channelX = rightEdge + BACK_GAP + (backSeen++) * BACK_GAP;
