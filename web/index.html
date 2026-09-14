@@ -1963,6 +1963,14 @@ function canCreateIn(pillar) {
   return ((currentUser.pillars && currentUser.pillars[pillar]) || 'none') === 'edit';
 }
 function isAdmin() { return !!currentUser.admin; }
+/* Guest = signed-in but no pillar-wide access; only individually shared items.
+   Their home shows just those documents instead of the full pillar catalogue. */
+function isGuest() {
+  if (isAdmin()) return false;
+  var pl = currentUser.pillars || {};
+  for (var k in pl) { if (pl[k] === 'view' || pl[k] === 'edit') return false; }
+  return true;
+}
 function hasAnyAccess() {
   if (isAdmin()) return true;
   return DOC.processes.some(function (p) { return accessLevel(p) !== 'none'; });
@@ -2843,6 +2851,20 @@ function drawHome() {
     return;
   }
   var q = homeSearch.trim().toLowerCase();
+  /* Guest (someone shared a few items with, no pillar access): show just those. */
+  if (isGuest()) {
+    var mineG = DOC.processes.filter(function (p) { return canSee(p) && p.pillar !== 'guide' &&
+      (!q || p.title.toLowerCase().indexOf(q) >= 0 || (p.subtitle || '').toLowerCase().indexOf(q) >= 0); });
+    S.innerHTML = '<section class="toc-hero toc-hero--home"><div class="toc-hero__row">' +
+      '<div><h1 class="hb-h1">L&amp;D Playbook</h1><p class="hb-lede">Documents shared with you.</p></div>' +
+      '<span class="mk-search mk-search--home"><span class="mk-search__icon">' + SEARCH_SVG + '</span>' +
+      '<input id="homeSearchInput" placeholder="Search…" value="' + esc(homeSearch) + '"></span></div></section>' +
+      '<section class="toc-section"><h2 class="pl-group__title">Shared with you<span class="pl-group__count">' + mineG.length + '</span></h2>' +
+      (mineG.length ? '<div class="toc-grid">' + mineG.map(itemCard).join('') + '</div>' : '<p class="pl-empty">' + (q ? 'Nothing matches “' + esc(q) + '”.' : 'No documents have been shared with you yet.') + '</p>') + '</section>';
+    var siG = $('homeSearchInput'); if (siG) siG.oninput = function () { homeSearch = siG.value; drawHome(); var m = $('homeSearchInput'); m.focus(); m.setSelectionRange(m.value.length, m.value.length); };
+    wireCards(S);
+    return;
+  }
   var head = '<section class="toc-hero toc-hero--home"><div class="toc-hero__row">' +
     '<div><h1 class="hb-h1">L&amp;D Playbook</h1>' +
     '<p class="hb-lede">Shape the game. Live the journey. Master the craft. <span style="color:var(--ink-faint)">— pick a pillar to get started.</span></p></div>' +
@@ -4207,10 +4229,17 @@ function drawAdmin() {
     '<div class="adm-grid">' + left + detail + '</div>';
 
   S.querySelectorAll('[data-mem]').forEach(function (b) { b.onclick = function () { adminSel = b.getAttribute('data-mem'); drawAdmin(); }; });
-  $('admAdd').onclick = function () { Modal.prompt('Add member', 'Email address (must be @pizza4ps.com):', '', function (email) {
+  $('admAdd').onclick = function () { Modal.prompt('Add member', 'Email — a @pizza4ps.com teammate, or an external email to share specific documents with:', '', function (email) {
     if (!email) return; email = email.trim().toLowerCase();
-    if (!/@pizza4ps\.com$/.test(email)) { Modal.alert('Not allowed', 'Only @pizza4ps.com email addresses can be added.'); return; }
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { Modal.alert('Invalid email', 'Please enter a valid email address.'); return; }
     if (memberByEmail(email)) { Modal.alert('Already a member', email + ' is already on the list.'); return; }
+    if (!/@pizza4ps\.com$/.test(email)) {   /* external → guest with no pillar access; share items individually */
+      Modal.confirm('Add external guest?', 'Add <b>' + esc(email) + '</b> as an external <b>guest</b> with no access yet. You then share individual documents with them below (“Access to specific items”, set to View). They sign in with this email and see only what you share.', function () {
+        var nu = { email: email, name: nameFromEmail(email), role: 'Guest', admin: false, pillars: {}, items: {} };
+        MEMBERS.push(nu); adminSel = email; persistMembers(); wireRoleSwitch(); drawAdmin();
+      }, { okLabel: 'Add guest' });
+      return;
+    }
     Modal.choice('Role for ' + email, 'The display name is taken from the email (you can edit it later). Pick a starting access level:',
       ROLES.filter(function (r) { return r !== 'Custom'; }).map(function (r) { return { label: r, value: r }; }), function (role) {
         if (!role) return;
