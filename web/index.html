@@ -1418,8 +1418,16 @@ var MARK_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABDgAAAM7CAYAA
       steps.forEach(function (s) { row[s.id] = depth[s.id]; });
     }
 
-    var laneNames = spec.lanes.filter(function (L) {
+    var laneNames = (spec.lanes || []).filter(function (L) {
       return steps.some(function (s) { return s.lane === L; });
+    });
+    /* A step can carry a lane that isn't in the declared order yet (e.g. a step
+       just added under a PIC that had no steps before). Give every lane a step
+       actually uses its own column — appended after the declared ones — so a
+       step is never orphaned, which would otherwise crash the whole diagram. */
+    steps.forEach(function (s) {
+      var L = s.lane || '';
+      if (laneNames.indexOf(L) < 0) laneNames.push(L);
     });
     var laneIdx = {}; laneNames.forEach(function (L, i) { laneIdx[L] = i; });
 
@@ -3614,7 +3622,7 @@ function drawDiagram() {
     (t.hasDoers ? '<span class="proc-meta__chip">' + t.doers + ' doers</span>' : '');
   try { var g = AutoLayout.layout({ title: P.title, subtitle: P.subtitle, steps: EF.steps, lanes: EF.lanes }); dgHandle = DiagramRender.render($('diagram'), g, { selected: sel, onPick: selectStep,
     onToggle: function (id) { var st = EF.steps.filter(function (x) { return x.id === id; })[0]; if (st) { st._open = !st._open; drawDiagram(); } } }); mountZoom($('zoomCtl'), dgHandle); }
-  catch (err) { $('diagram').innerHTML = '<div class="mk-empty">Cannot draw the diagram yet — fix the problems above.</div>'; }
+  catch (err) { try { console.error('drawDiagram failed:', err); } catch (e) {} $('diagram').innerHTML = '<div class="mk-empty">Cannot draw the diagram yet — fix the problems above.</div>'; }
 }
 function wouldLoseData(s, newType) {
   if (s.type === newType) return false;
@@ -4129,7 +4137,7 @@ function wireEditorChrome() {
     var t = b.getAttribute('data-add'), base = 'new_step', id = base, i = 2, taken = {};
     EF.steps.forEach(function (s) { taken[s.id] = 1; }); while (taken[id]) id = base + '_' + (i++);
     EF.steps.push({ id: id, label: t === 'decision' ? 'Review' : 'New step', lane: EF.owners[0] || EF.lanes[0] || 'Intern', type: t, next: t === 'decision' ? { yes: [], no: [] } : [], task: '', timeline: '', files: [], images: [], note: '' });
-    sel = id; markDirty(); draw(); }; });
+    sel = id; rebuildLanes(); markDirty(); draw(); }; });
   $('backToView').onclick = function () {
     if (dirty) Modal.confirm('Leave without saving?', 'You have unsaved changes. Leaving keeps them only in this browser tab.', function () { backFromEditor(); }, { okLabel: 'Leave' });
     else backFromEditor(); };
