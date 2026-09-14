@@ -4381,6 +4381,30 @@ if (typeof GAS_MODE === 'undefined' || !GAS_MODE) bootApp();
     });
   };
 
+  /* Live updates: when any document is published/changed elsewhere, keep the
+     in-memory data fresh so navigation is never stale, and auto-refresh the view
+     ONLY when the person is looking at that exact document (scroll position kept).
+     A document the person is editing is never touched (no clobbering unsaved work).
+     Needs the `documents` table added to the supabase_realtime publication. */
+  var _rtDone=false;
+  function subscribeRealtime(){
+    if(_rtDone)return; _rtDone=true;
+    try{
+      SB.channel('documents-live').on('postgres_changes',{event:'*',schema:'public',table:'documents'},function(payload){
+        var r=payload.new||payload.old; if(!r||!r.process_id)return; var pid=r.process_id;
+        if(window.view&&window.view.level==='edit'&&window.P&&window.P.process_id===pid)return;   /* don't disturb an active edit */
+        DOC.processes=DOC.processes||[];
+        if(payload.eventType==='DELETE'){ DOC.processes=DOC.processes.filter(function(x){return x.process_id!==pid;}); }
+        else{ var mapped=mapRow(payload.new);
+          DOC.processes=DOC.processes.filter(function(x){return x.process_id!==pid;});
+          if(mapped){ DOC.processes.push(mapped); try{ORIG[pid]=sig(mapped);}catch(e){} } }
+        var v=window.view||{};
+        var viewingThis=(v.level==='process'&&v.proc===pid);
+        var onList=(v.level==='home'||v.level==='pillar');
+        if((viewingThis||onList)&&window.render){ var y=window.scrollY||0; try{window.render();}catch(e){} window.scrollTo(0,y); }
+      }).subscribe();
+    }catch(e){}
+  }
   SB=window.supabase.createClient("https://gwavhbebglgkeihyvsou.supabase.co","eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3YXZoYmViZ2xna2VpaHl2c291Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg5MzEzMTcsImV4cCI6MjEwNDUwNzMxN30.0LsDw1aakQZ1XLcQ5oTS4KQNNmKFtDwPWtl8u4RGrfM",{auth:{persistSession:true,detectSessionInUrl:true,autoRefreshToken:true}});
   function gate(id){['gateLogin','gateNoAccess'].forEach(function(g){$(g).hidden=g!==id;});}
   var booted=false;
@@ -4396,7 +4420,7 @@ if (typeof GAS_MODE === 'undefined' || !GAS_MODE) bootApp();
         $('gateLogin').hidden=true;$('gateNoAccess').hidden=true;
         window.google.script.run.withSuccessHandler(function(res){
           if(res&&res.ok){if(res.data&&res.data.processes)DOC=res.data; if(res.members&&res.members.length)MEMBERS=res.members; if(res.notifications)NOTIFS=res.notifications; if(res.config)window.EDL_CFG={mailerUrl:res.config.mailer_url,mailerSecret:res.config.mailer_secret};}
-          try{bootApp();}catch(e){var si=$('siteInner');if(si)si.innerHTML='<div style="padding:40px">Load error: '+(e&&e.message)+'</div>';}
+          try{bootApp();subscribeRealtime();}catch(e){var si=$('siteInner');if(si)si.innerHTML='<div style="padding:40px">Load error: '+(e&&e.message)+'</div>';}
         }).withFailureHandler(function(e){var si=$('siteInner');if(si)si.innerHTML='<div style="padding:40px">Không tải được dữ liệu: '+(e&&e.message)+'</div>';}).loadData();
       });
     });
