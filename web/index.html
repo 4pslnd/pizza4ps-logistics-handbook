@@ -4653,7 +4653,11 @@ if (typeof GAS_MODE === 'undefined' || !GAS_MODE) bootApp();
   function start(){
     SB.auth.getUser().then(function(res){
       var u=res.data&&res.data.user;
-      if(res.error||!u){gate('gateLogin');try{var _last=localStorage.getItem('edl_last_email');if(_last&&$('loginEmail')&&!$('loginEmail').value)$('loginEmail').value=_last;}catch(e){}return;}
+      if(res.error||!u){
+        /* Remember the document the person was trying to open, so a magic-link
+           login (which drops the URL hash on redirect) can return them to it. */
+        try{var _dh=location.hash||'';if(_dh.indexOf('#/')===0&&_dh.indexOf('access_token')<0&&_dh.indexOf('/admin')<0)localStorage.setItem('edl_intended_hash',JSON.stringify({h:_dh,t:Date.now()}));}catch(e){}
+        gate('gateLogin');try{var _last=localStorage.getItem('edl_last_email');if(_last&&$('loginEmail')&&!$('loginEmail').value)$('loginEmail').value=_last;}catch(e){}return;}
       MYEMAIL=(u.email||(u.user_metadata&&u.user_metadata.email)||'').toLowerCase();
       SB.rpc('whoami').then(function(r){
         if(r.error||!r.data){$('naEmail').textContent=MYEMAIL||'(không đọc được email)';gate('gateNoAccess');return;}
@@ -4662,7 +4666,11 @@ if (typeof GAS_MODE === 'undefined' || !GAS_MODE) bootApp();
         $('gateLogin').hidden=true;$('gateNoAccess').hidden=true;
         window.google.script.run.withSuccessHandler(function(res){
           if(res&&res.ok){if(res.data&&res.data.processes)DOC=res.data; if(res.members&&res.members.length)MEMBERS=res.members; if(res.notifications)NOTIFS=res.notifications; if(res.config)window.EDL_CFG={mailerUrl:res.config.mailer_url,mailerSecret:res.config.mailer_secret,publishGroup:res.config.publish_group_email};}
-          try{bootApp();subscribeRealtime();}catch(e){var si=$('siteInner');if(si)si.innerHTML='<div style="padding:40px">Load error: '+(e&&e.message)+'</div>';}
+          try{bootApp();subscribeRealtime();
+            /* After a magic-link login the URL hash is gone; reopen the document
+               the person originally clicked (saved before login, valid 30 min). */
+            try{var _s=localStorage.getItem('edl_intended_hash');if(_s){localStorage.removeItem('edl_intended_hash');var _o=JSON.parse(_s);if(_o&&_o.h&&(Date.now()-(_o.t||0)<1800000)){if((location.hash||'')!==_o.h){location.hash=_o.h;}else if(window.applyHash){window.applyHash();}}}}catch(e){}
+          }catch(e){var si=$('siteInner');if(si)si.innerHTML='<div style="padding:40px">Load error: '+(e&&e.message)+'</div>';}
         }).withFailureHandler(function(e){var si=$('siteInner');if(si)si.innerHTML='<div style="padding:40px">Không tải được dữ liệu: '+(e&&e.message)+'</div>';}).loadData();
       });
     });
