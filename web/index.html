@@ -3133,7 +3133,7 @@ function wireItemHeader(p) {
       persist('Approved & published: ' + p.title, function (ok, r) {
         ap.disabled = false;
         if (!ok) { p.review = pr; p.status = ps; p.updatedAt = pu; p.updatedBy = pb; Modal.alert('Publish failed', errText(r)); return; }
-        pushHistory(p, 'Approved & published'); addNotif('published', p); notifyServer('Approved & published', p);
+        pushHistory(p, 'Approved & published'); addNotif('published', p); notifyServer('Approved & published', p); notifyPublish(p);
         Modal.alert('Published', '"' + esc(p.title) + '" is now live.'); render(); }); }, { okLabel: 'Approve & publish' }); };
 }
 /* ================= BU variant diff / compare (Đợt 2) ================= */
@@ -4211,7 +4211,7 @@ function wireEditorChrome() {
       function commit(realSaved) {
         $('pub').textContent = verb; dirty = false; delete P._restoreNote; clearAutosave(P.process_id);
         pushHistory(P, m || (P.status === 'draft' ? 'Saved draft' : 'Published'));
-        if (live) { addNotif('published', P); notifyServer('Published', P); }
+        if (live) { addNotif('published', P); notifyServer('Published', P); notifyPublish(P); }
         updatePublishButton();
         var msg = P.status === 'draft' ? '✓ Saved as draft — only people who can edit it will see it.' : '✓ Published — this is now live on the website.';
         /* A process draft can be saved while still incomplete — keep the red
@@ -4348,6 +4348,18 @@ function notifyServer(status, p) {
     google.script.run.withFailureHandler(function () {}).notify({
       title: p.title, status: status, by: currentUser.email, date: fmtDate(todayISO()) });
   } catch (e) {}
+}
+/* When a document goes live, tell the team on Google Chat + email the group.
+   The Apps Script mailer holds the Chat webhook (server-side); the group email
+   comes from app_config so it can be changed without touching code. */
+function notifyPublish(p) {
+  if (typeof window.__notifyPublish !== 'function') return;
+  var _n = new Date(), at = ('0' + _n.getDate()).slice(-2) + '/' + ('0' + (_n.getMonth() + 1)).slice(-2) + '/' + _n.getFullYear() +
+    ' ' + ('0' + _n.getHours()).slice(-2) + ':' + ('0' + _n.getMinutes()).slice(-2);
+  window.__notifyPublish({
+    title: p.title, pillar: PILLAR_LABEL[p.pillar] || p.pillar, type: KIND_LABEL[kindOf(p)] || kindOf(p),
+    pic: p.pic || '', publisherName: nameFromEmail(currentUser.email), publisherEmail: currentUser.email, publishedAt: at,
+    link: location.href.split('#')[0] + '#/' + encodeURIComponent(p.pillar || '') + '/' + (slug(p.title) ? slug(p.title) + '~' : '') + encodeURIComponent(p.process_id) });
 }
 function updateAdminLink() { $('adminLink').hidden = !isAdmin(); }
 function wireBrand() {
@@ -4565,7 +4577,16 @@ if (typeof GAS_MODE === 'undefined' || !GAS_MODE) bootApp();
   // Gửi email duyệt qua Apps Script mailer (no-cors, fire-and-forget)
   window.__sendApprovalEmail=function(evt){
     var cfg=window.EDL_CFG||{}; if(!cfg.mailerUrl){return;}
-    var payload=Object.assign({secret:cfg.mailerSecret||''},evt||{});
+    var payload=Object.assign({secret:cfg.mailerSecret||'',event:'approval'},evt||{});
+    try{ fetch(cfg.mailerUrl,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify(payload)}); }catch(e){}
+  };
+
+  // Thông báo khi PUBLISH: cùng Apps Script mailer lo cả Google Chat + email group.
+  // Địa chỉ group lấy từ app_config (publish_group_email); webhook Chat nằm trong
+  // Apps Script (không lộ ra client).
+  window.__notifyPublish=function(evt){
+    var cfg=window.EDL_CFG||{}; if(!cfg.mailerUrl){return;}
+    var payload=Object.assign({secret:cfg.mailerSecret||'',event:'published',group:cfg.publishGroup||''},evt||{});
     try{ fetch(cfg.mailerUrl,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify(payload)}); }catch(e){}
   };
 
@@ -4640,7 +4661,7 @@ if (typeof GAS_MODE === 'undefined' || !GAS_MODE) bootApp();
         ME=r.data; window.__WHOAMI=r.data; CURRENT_USER=MYEMAIL;
         $('gateLogin').hidden=true;$('gateNoAccess').hidden=true;
         window.google.script.run.withSuccessHandler(function(res){
-          if(res&&res.ok){if(res.data&&res.data.processes)DOC=res.data; if(res.members&&res.members.length)MEMBERS=res.members; if(res.notifications)NOTIFS=res.notifications; if(res.config)window.EDL_CFG={mailerUrl:res.config.mailer_url,mailerSecret:res.config.mailer_secret};}
+          if(res&&res.ok){if(res.data&&res.data.processes)DOC=res.data; if(res.members&&res.members.length)MEMBERS=res.members; if(res.notifications)NOTIFS=res.notifications; if(res.config)window.EDL_CFG={mailerUrl:res.config.mailer_url,mailerSecret:res.config.mailer_secret,publishGroup:res.config.publish_group_email};}
           try{bootApp();subscribeRealtime();}catch(e){var si=$('siteInner');if(si)si.innerHTML='<div style="padding:40px">Load error: '+(e&&e.message)+'</div>';}
         }).withFailureHandler(function(e){var si=$('siteInner');if(si)si.innerHTML='<div style="padding:40px">Không tải được dữ liệu: '+(e&&e.message)+'</div>';}).loadData();
       });
