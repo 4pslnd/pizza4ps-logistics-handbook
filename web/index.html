@@ -4173,7 +4173,8 @@ function wireEditorChrome() {
         if (typeof window.__sendApprovalEmail === 'function') window.__sendApprovalEmail({
           to: P.reviewer, title: P.title, pillar: PILLAR_LABEL[P.pillar] || P.pillar, type: KIND_LABEL[kindOf(P)] || kindOf(P),
           pic: P.pic || '', reviewerName: nameFromEmail(P.reviewer), senderName: nameFromEmail(currentUser.email),
-          senderEmail: currentUser.email, submittedAt: _sub, link: location.href.split('#')[0] });
+          senderEmail: currentUser.email, submittedAt: _sub,
+          link: location.href.split('#')[0] + '#/' + encodeURIComponent(P.pillar || '') + '/' + (slug(P.title) ? slug(P.title) + '~' : '') + encodeURIComponent(P.process_id) });
         Modal.alert('Sent for approval', 'Sent to <b>' + esc(displayName(P.reviewer)) + '</b> for approval. The reviewer gets an email (CC lnd.edl@pizza4ps.com) and can Approve — or Approve &amp; publish — from the document page.');
         backFromEditor();
       });
