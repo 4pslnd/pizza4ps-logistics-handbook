@@ -530,6 +530,7 @@ img{ max-width: 100%; display:block; }
   .proc-hero{ padding: 40px 0 8px; }
   .proc-meta{ display:flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
   .proc-meta__chip{ font-family: var(--font-body); font-weight: 700; font-size: 11.5px; letter-spacing: 0.03em; color: var(--ink-soft); background: var(--lane-bg); border: 1px solid var(--hairline-strong); border-radius: 999px; padding: 5px 12px; }
+  .proc-meta__chip--warn{ color: #B0741A; background: #F6ECD8; border-color: #E4C98A; }
   .proc-diagram{ padding: 32px 0 0; }
   .proc-diagram__label{ display:flex; align-items:center; justify-content: space-between; margin-bottom: 4px; }
   .proc-diagram__label h2{ font-family: var(--font-display); font-weight: 400; font-size: 24px; margin: 0; color: var(--indigo-1); }
@@ -1684,15 +1685,21 @@ var MARK_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABDgAAAM7CAYAA
         canvas.appendChild(cb);
       }
 
-      /* working-days badge, corner-mounted so it never disturbs the box's
-         own geometry — action/decision steps only, only when set */
-      var wd = n.detail && n.detail.workingDays;
-      if ((n.type === 'action' || n.type === 'decision') && wd != null && wd !== '') {
+      /* effort badge on the bottom edge — "N doer · M wd", where M is the whole
+         step's working days (people × days/person). Action/decision steps only,
+         shown when either number is set. */
+      var det = n.detail || {};
+      var wd = (det.workingDays != null && det.workingDays !== '') ? Number(det.workingDays) : null;
+      var np = (det.persons != null && det.persons !== '') ? Number(det.persons) : null;
+      if ((n.type === 'action' || n.type === 'decision') && (wd != null || np != null)) {
+        var parts = [];
+        if (np != null) parts.push(np + ' doer' + (np === 1 ? '' : 's'));
+        if (wd != null) { var tot = Math.round(wd * (np != null ? np : 1) * 100) / 100; parts.push(tot + ' wd'); }
         var badge = document.createElement('span');
         badge.className = 'dg-node-badge';
-        badge.textContent = wd + 'd';
-        badge.style.left = (n.x + n.w - 8) + 'px';
-        badge.style.top = (n.y + n.h - 8) + 'px';
+        badge.textContent = parts.join(' · ');
+        badge.style.left = (n.x + n.w / 2) + 'px';
+        badge.style.top = (n.y + n.h) + 'px';
         canvas.appendChild(badge);
       }
     });
@@ -2162,22 +2169,29 @@ function addNotif(type, p) {
 function updateBell() { var b = $('bellBadge'); if (!b) return; var n = Math.max(0, NOTIFS.length - notiSeenCount()); if (n > 0) { b.textContent = n > 9 ? '9+' : n; b.hidden = false; } else b.hidden = true; }
 
 /* Effort is measured in working days.
-   - perPersonDays = sum of "working days / person" across steps (calendar-ish)
+   - perPersonDays = sum of "working days / person" across steps
    - totalDays     = sum of (working days / person x people on step) = total effort
-   - doers         = sum of "people on this step" across steps */
+   - peakPIC       = the HIGHEST people-on-a-step (peak crew), NOT the sum — a
+                     summed headcount double-counts anyone working several steps.
+   - missingDays   = action/decision steps with no working days yet, so the reader
+                     knows the totals are a floor until those are filled in. */
 function processTotals(p) {
-  var perPersonDays = 0, totalDays = 0, doers = 0, hasDays = false, hasDoers = false;
+  var perPersonDays = 0, totalDays = 0, peakPIC = 0, hasDays = false, hasPIC = false, actSteps = 0, missingDays = 0;
   (p.steps || []).forEach(function (s) {
     if (s.type === 'start' || s.type === 'end') return;
+    actSteps++;
     var n = (s.persons != null && s.persons !== '') ? Number(s.persons) : null;
-    if (n != null) { doers += n; hasDoers = true; }
+    if (n != null) { peakPIC = Math.max(peakPIC, n); hasPIC = true; }
     if (s.workingDays != null && s.workingDays !== '') {
       var d = Number(s.workingDays), pp = Math.max(1, n != null ? n : (ownersOf(s.lane).length || 1));
       perPersonDays += d; totalDays += d * pp; hasDays = true;
-    }
+    } else { missingDays++; }
   });
-  return { perPersonDays: perPersonDays, totalDays: totalDays, doers: doers, hasDays: hasDays, hasDoers: hasDoers };
+  return { perPersonDays: round2(perPersonDays), totalDays: round2(totalDays), peakPIC: peakPIC,
+    hasDays: hasDays, hasPIC: hasPIC, actSteps: actSteps, missingDays: missingDays };
 }
+/* Trim floating-point noise so 27.950000000000003 shows as 27.95. */
+function round2(n) { return Math.round((Number(n) || 0) * 100) / 100; }
 function totalDaysText(s) {
   var wd = (s.workingDays != null && s.workingDays !== '') ? Number(s.workingDays) : null;
   var n = (s.persons != null && s.persons !== '') ? Number(s.persons) : null;
@@ -3230,8 +3244,8 @@ function drawProcess(p) {
   var metaChips = '<div class="proc-meta"><span class="proc-meta__chip">' + plural(c.steps, 'step') + '</span>' +
     '<span class="proc-meta__chip">' + plural(c.gates, 'review gate') + '</span>' +
     (t.hasDays ? '<span class="proc-meta__chip">' + t.perPersonDays + ' working days / person</span>' : '') +
-    (t.hasDays ? '<span class="proc-meta__chip">' + t.totalDays + ' total working days</span>' : '') +
-    (t.hasDoers ? '<span class="proc-meta__chip">' + t.doers + ' doers</span>' : '') + '</div>';
+    (t.hasPIC ? '<span class="proc-meta__chip">No. PIC ' + t.peakPIC + '</span>' : '') +
+    (t.hasDays ? '<span class="proc-meta__chip">' + t.totalDays + ' total working days</span>' : '') + '</div>';
   /* Mode segmented control — only when the process has BU variants */
   function seg(m, label) { return '<button type="button" class="hb-modeseg' + (viewMode === m ? ' is-on' : '') + '" data-mode="' + m + '">' + label + '</button>'; }
   var modeCtl = vs.length ? '<span class="hb-modebar">' + seg('diagram', 'Diagram') + seg('compare', 'Compare') + seg('matrix', 'All BUs') + '</span>' : '';
@@ -3618,8 +3632,9 @@ function drawBanner() {
 function drawDiagram() {
   var t = processTotals(P);
   $('procTotals').innerHTML = (t.hasDays ? '<span class="proc-meta__chip">' + t.perPersonDays + ' wd / person</span>' : '') +
+    (t.hasPIC ? '<span class="proc-meta__chip">No. PIC ' + t.peakPIC + '</span>' : '') +
     (t.hasDays ? '<span class="proc-meta__chip">' + t.totalDays + ' total wd</span>' : '') +
-    (t.hasDoers ? '<span class="proc-meta__chip">' + t.doers + ' doers</span>' : '');
+    (t.missingDays ? '<span class="proc-meta__chip proc-meta__chip--warn" title="These steps have no working days yet, so the totals are a minimum.">⚠ ' + t.missingDays + '/' + t.actSteps + ' steps missing wd</span>' : '');
   try { var g = AutoLayout.layout({ title: P.title, subtitle: P.subtitle, steps: EF.steps, lanes: EF.lanes }); dgHandle = DiagramRender.render($('diagram'), g, { selected: sel, onPick: selectStep,
     onToggle: function (id) { var st = EF.steps.filter(function (x) { return x.id === id; })[0]; if (st) { st._open = !st._open; drawDiagram(); } } }); mountZoom($('zoomCtl'), dgHandle); }
   catch (err) { try { console.error('drawDiagram failed:', err); } catch (e) {} $('diagram').innerHTML = '<div class="mk-empty">Cannot draw the diagram yet — fix the problems above.</div>'; }
