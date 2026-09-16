@@ -703,6 +703,10 @@ img{ max-width: 100%; display:block; }
 .dg-conn{opacity:.3}
 .dg-conn--yes,.dg-conn--no{opacity:.45}
 /* Float the zoom control over the top-right of the flowchart itself. */
+.dg-node-num{position:absolute;transform:translate(-50%,-50%);min-width:22px;height:22px;padding:0 6px;
+  border-radius:999px;background:var(--indigo-1);color:#fff;font-family:var(--font-body);font-weight:700;
+  font-size:11px;line-height:1;display:flex;align-items:center;justify-content:center;
+  font-variant-numeric:tabular-nums;z-index:4;box-shadow:var(--shadow-sm)}
 .dg-hold{position:relative}
 .dg-zoomctl--float{position:absolute;top:8px;right:8px;z-index:6;background:var(--paper-raised)}
 
@@ -1486,6 +1490,19 @@ var MARK_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABDgAAAM7CAYAA
     });
     var pos = {}; nodes.forEach(function (n) { pos[n.id] = n; });
 
+    /* Step numbers. With phases: "<phase#>.<n>" (e.g. 2.1, 2.2) grouped by phase;
+       without phases: a single running 1,2,3. Ordered top-to-bottom then
+       left-to-right; Start/End are never numbered. */
+    var numOrder = nodes.filter(function (n) { return n.type !== 'start' && n.type !== 'end'; })
+      .sort(function (a, b) { return a.y - b.y || a.x - b.x; });
+    if (hasPhase) {
+      var pIndex = {}; phaseSeq.forEach(function (p, i) { pIndex[p] = i + 1; });
+      var cnt = {};
+      numOrder.forEach(function (n) { var pi = pIndex[effPhase[n.id]] || 1; cnt[pi] = (cnt[pi] || 0) + 1; n.number = pi + '.' + cnt[pi]; });
+    } else {
+      numOrder.forEach(function (n, i) { n.number = String(i + 1); });
+    }
+
     var phases = [];
     if (hasPhase) {
       /* Bands follow the phase-grouped rows, using each step's effective phase
@@ -1674,6 +1691,16 @@ var MARK_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABDgAAAM7CAYAA
       b.innerHTML = toggle + '<span class="dg-node__label">' + esc(n.label) + '</span>' + chip + subList;
       if (opts.onPick) b.onclick = function () { opts.onPick(n.id); };
       canvas.appendChild(b);
+
+      /* step number, top-left corner (Start/End unnumbered) */
+      if (n.number && n.type !== 'start' && n.type !== 'end') {
+        var numEl = document.createElement('span');
+        numEl.className = 'dg-node-num';
+        numEl.textContent = n.number;
+        numEl.style.left = n.x + 'px';
+        numEl.style.top = n.y + 'px';
+        canvas.appendChild(numEl);
+      }
       if (hasSub && opts.onToggle) { var tg = b.querySelector('[data-toggle]'); if (tg) tg.onclick = function (ev) { ev.stopPropagation(); opts.onToggle(n.id); }; }
       nodeEls[n.id] = b;
 
