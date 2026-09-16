@@ -610,7 +610,7 @@ img{ max-width: 100%; display:block; }
 /* Every label centered, both axes, at one consistent size — a step reads
    the same whether it's an action box, a diamond, or the start/end oval. */
 .dg-node{justify-content:center;align-items:center;text-align:center;padding:0 12px}
-.dg-node__label{width:100%;font-size:15.5px;line-height:1.32}
+.dg-node__label{width:100%;font-size:15.5px;line-height:1.32;font-weight:400}
 
 .mm-choices{display:flex;flex-direction:column;gap:7px;margin-top:8px}
 .mm-choice{display:flex;align-items:center;gap:9px;padding:10px 13px;border:1px solid var(--hairline-strong);
@@ -700,8 +700,11 @@ img{ max-width: 100%; display:block; }
 
 
 /* lighter, more transparent connector lines — the boxes should read first */
-.dg-conn{opacity:.45}
-.dg-conn--yes,.dg-conn--no{opacity:.6}
+.dg-conn{opacity:.3}
+.dg-conn--yes,.dg-conn--no{opacity:.45}
+/* Float the zoom control over the top-right of the flowchart itself. */
+.dg-hold{position:relative}
+.dg-zoomctl--float{position:absolute;top:8px;right:8px;z-index:6;background:var(--paper-raised)}
 
 /* working-days badge, corner-mounted on action/decision boxes */
 .dg-node-badge{position:absolute;transform:translate(-50%,-50%);background:#fff;color:var(--ink);
@@ -1109,10 +1112,9 @@ textarea{resize:vertical;min-height:60px;line-height:1.5}
       <div class="mk-col mk-col--diagram">
         <div id="banner"></div>
         <div class="proc-diagram__label">
-          <span style="display:flex;align-items:center;gap:10px"><h2>Preview</h2><span id="procTotals" style="display:flex;gap:6px"></span></span>
-          <span class="dg-zoomctl" id="zoomCtl"></span></div>
+          <span style="display:flex;align-items:center;gap:10px"><h2>Preview</h2><span id="procTotals" style="display:flex;gap:6px"></span></span></div>
         <div id="laneOrderBar" class="lo-bar" hidden></div>
-        <div id="diagram"></div>
+        <div class="dg-hold"><div id="diagram"></div><span class="dg-zoomctl dg-zoomctl--float" id="zoomCtl"></span></div>
         <div class="dg-legend">
           <span class="dg-legend__item"><i class="dg-legend__swatch" style="background:#02499D"></i>Action step</span>
           <span class="dg-legend__item"><i class="dg-legend__swatch" style="background:#BF6B1F"></i>Review / decision</span>
@@ -1901,7 +1903,7 @@ var MARK_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABDgAAAM7CAYAA
 
 var PILLARS = [
   { key: 'elearning', label: 'E-learning' },
-  { key: 'data', label: 'Data' },
+  { key: 'data', label: 'Data and LMS' },
   { key: 'logistics', label: 'Logistics' },
   { key: 'training', label: 'Training' },
   { key: 'guide', label: 'User guide' }
@@ -3261,10 +3263,9 @@ function drawProcess(p) {
       vs.map(function (v) { return '<option value="' + esc(v.key) + '"' + (compareWith === v.key ? ' selected' : '') + '>' + esc(v.name) + '</option>'; }).join('') +
       '</select></label>';
   }
-  var zoomCtl = (viewMode === 'matrix') ? '' : '<span class="dg-zoomctl" id="siteZoomCtl"></span>';
   S.innerHTML = heroFor(p, metaChips) +
     '<section class="proc-diagram"><div class="proc-diagram__label"><h2>Process flow</h2>' +
-    modeCtl + '<span class="mk-grow"></span>' + rightCtl + zoomCtl + '</div>' +
+    modeCtl + '<span class="mk-grow"></span>' + rightCtl + '</div>' +
     '<div id="procBody"></div></section>';
   wireItemHeader(p);
   /* mode + selector wiring */
@@ -3286,8 +3287,8 @@ function renderProcDiagram(p) {
     '<span class="dg-legend__item"><i class="dg-legend__swatch" style="background:#02499D"></i>Action step</span>' +
     '<span class="dg-legend__item"><i class="dg-legend__swatch" style="background:#BF6B1F"></i>Review / decision</span>' +
     '<span class="dg-legend__item"><i class="dg-legend__swatch" style="background:#2A4728"></i>Start / End</span>' +
-    '<span class="dg-legend__hint">Click a step for the full detail</span></div>' +
-    '<div class="proc-layout"><div id="sdiag"></div><div id="sdetail"></div></div>';
+    '<span class="dg-legend__hint">Click a step to see full details</span></div>' +
+    '<div class="proc-layout"><div class="dg-hold"><div id="sdiag"></div><span class="dg-zoomctl dg-zoomctl--float" id="siteZoomCtl"></span></div><div id="sdetail"></div></div>';
   var steps = flow.steps || [];
   var first = steps.filter(function (s) { return s.type !== 'start' && s.type !== 'end'; })[0];
   function renderDiag(keepZoom) {
@@ -3319,7 +3320,7 @@ function renderProcCompare(p) {
     '<span class="dg-legend__item"><i class="dg-legend__swatch" style="background:#2E9B4F"></i>Added in ' + esc(variant.name) + '</span>' +
     '<span class="dg-legend__item"><i class="dg-legend__swatch" style="background:#E0912F"></i>Changed</span>' +
     '<span class="dg-legend__item"><i class="dg-legend__swatch" style="background:#C0392B"></i>Removed (not used here)</span></div>' +
-    '<div class="proc-layout"><div id="sdiag"></div><div id="sdetail"></div></div>';
+    '<div class="proc-layout"><div class="dg-hold"><div id="sdiag"></div><span class="dg-zoomctl dg-zoomctl--float" id="siteZoomCtl"></span></div><div id="sdetail"></div></div>';
   $('sdetail').innerHTML = diffListHTML(p, variant, diff);
   function highlight(id) {
     document.querySelectorAll('#sdetail .di').forEach(function (d) { d.classList.toggle('is-on', d.getAttribute('data-di') === id); });
