@@ -859,6 +859,8 @@ textarea{resize:vertical;min-height:60px;line-height:1.5}
 .mk-status-pill--live{background:var(--olive-fill);color:var(--olive-ink)}
 .mk-status-pill--draft{background:var(--lane-bg);color:var(--ink-faint);border:1px dashed var(--hairline-strong)}
 .mk-status-pill--archived{background:transparent;color:var(--ink-faint);text-decoration:line-through}
+.mk-status-pill--review{background:#F6ECD8;color:#8A5A12}
+.mk-status-pill--approved{background:#DCE7F7;color:#023A8C}
 
 /* review chips */
 .rev-chip{display:inline-flex;align-items:center;font-family:var(--font-body);font-weight:700;font-size:10px;letter-spacing:.04em;text-transform:uppercase;padding:3px 9px;border-radius:999px}
@@ -1102,10 +1104,14 @@ textarea{resize:vertical;min-height:60px;line-height:1.5}
     <span id="editFlowBar" class="mk-editflow" style="display:inline-flex;gap:6px;align-items:center"></span>
     <label class="mk-hint">Type <select id="pkind" aria-label="Process or alignment">
       <option value="process">Process</option><option value="alignment">Alignment</option></select></label>
-    <label class="mk-hint">Status <select id="pstatus" aria-label="Status"></select></label>
+    <label class="mk-hint" style="display:none">Status <select id="pstatus" aria-label="Status"></select></label>
+    <span class="mk-hint">Status <span id="pstatusPill" class="mk-status-pill mk-status-pill--draft">Draft</span></span>
     <label class="mk-hint">PIC <select id="ppic" aria-label="Person in charge"></select></label>
     <label class="mk-hint">Reviewer <select id="previewer" aria-label="Reviewer"></select></label>
     <div class="mk-grow"></div>
+    <button class="mk-btn" id="recallBtn" hidden title="Pull it back to Draft">↩ Recall</button>
+    <button class="mk-btn" id="archiveBtn" hidden title="Move to Archived (hidden from viewers)">Archive</button>
+    <button class="mk-btn" id="adminPubBtn" hidden title="Publish directly, without review (admin)">Publish now</button>
     <button class="mk-btn" id="discard">Discard</button>
     <button class="mk-btn mk-btn--primary" id="pub" disabled>Publish</button>
   </div>
@@ -2261,7 +2267,7 @@ function offerAutosaveRestore(pid) {
 }
 
 function markDirty() { dirty = true; updatePublishButton(); scheduleAutosave(); }
-function saveVerb() { return (P && P.status === 'draft') ? 'Save draft' : 'Publish'; }
+function saveVerb() { var st = P ? editorState() : null; return st ? st.label.replace(/^→\s*/, '').replace(/…$/, '') : 'Save'; }
 /* Turn a failed save result into readable text. */
 function errText(r) { return (r && r.errors && r.errors.length) ? r.errors.map(esc).join('<br>') : 'Please try again.'; }
 /* The one and only path that writes content to the server. Every state change
@@ -2278,20 +2284,123 @@ function persist(message, onDone) {
 /* Decide what the primary editor button does right now, given draft/review state. */
 /* A DRAFT can always be saved, even if incomplete — that is the whole point of
    a draft. Only Send-for-approval and Publish require the process to validate. */
+/* Primary editor button: one clear next action per lifecycle state.
+   Draft → (Send for approval) → In review → (reviewer approves) → Approved →
+   (Publish) → Live → (Archive) → Archived. Recall / Archive / admin direct-
+   publish are secondary controls. */
 function editorState() {
   if (!P) return { label: 'Publish', disabled: true, mode: 'save' };
-  if (P.review === 'pending') return { label: 'Waiting for approval…', disabled: true, mode: 'pending' };
+  if (P.status === 'archived') return { label: '↩ Restore', disabled: false, mode: 'restore' };
   var invalid = kindOf(P) === 'process' && validate().length > 0;
-  if (P.status === 'draft') {
-    if (P.reviewer && P.review === 'none') return { label: '→ Send for approval', disabled: invalid, mode: invalid ? 'invalid' : 'send' };
-    return { label: 'Save draft', disabled: !dirty, mode: 'save' };
-  }
-  return { label: 'Publish', disabled: !dirty || invalid, mode: invalid ? 'invalid' : 'save' };
+  var live = !!P._live;
+  if (P.review === 'pending') return { label: 'Waiting for ' + (P.reviewer ? nameFromEmail(P.reviewer) : 'review') + '…', disabled: true, mode: 'pending' };
+  if (P.review === 'approved') return { label: live ? 'Publish update' : 'Publish', disabled: invalid, mode: invalid ? 'invalid' : 'publish' };
+  if (P.reviewer) return { label: '→ Send ' + (live ? 'update ' : '') + 'for approval', disabled: invalid, mode: invalid ? 'invalid' : 'send' };
+  return { label: 'Save draft', disabled: !dirty, mode: 'save' };
+}
+/* The status pill reflects the true state, including the "live + a revision in
+   progress / in review" cases that the single status field alone can't show. */
+function statusPillInfo() {
+  if (!P) return { cls: 'draft', text: 'Draft' };
+  if (P.status === 'archived') return { cls: 'archived', text: 'Archived' };
+  if (P.review === 'pending') return { cls: 'review', text: P._live ? 'Live · update in review' : 'In review' };
+  if (P.review === 'approved') return { cls: 'approved', text: P._live ? 'Live · update approved' : 'Approved' };
+  if (P._live) return { cls: 'live', text: (dirty || P._pendingUpdate) ? 'Live · draft changes' : 'Live' };
+  return { cls: 'draft', text: 'Draft' };
 }
 function updatePublishButton() {
   var b = $('pub'); if (!b || !P) return;
   var st = editorState();
   b.textContent = st.label; b.disabled = !!st.disabled; b.setAttribute('data-mode', st.mode || 'save');
+  var pill = $('pstatusPill'); if (pill) { var pi = statusPillInfo(); pill.className = 'mk-status-pill mk-status-pill--' + pi.cls; pill.textContent = pi.text; }
+  var invalid = kindOf(P) === 'process' && validate().length > 0;
+  var rc = $('recallBtn'); if (rc) rc.hidden = !(P.review === 'pending');
+  var ar = $('archiveBtn'); if (ar) ar.hidden = !(P._live && P.status !== 'archived' && P.review !== 'pending');
+  var ap = $('adminPubBtn'); if (ap) {
+    ap.hidden = !(isAdmin() && P.status !== 'archived' && P.review !== 'pending' && P.review !== 'approved');
+    ap.disabled = invalid; ap.textContent = P._live ? 'Publish now' : 'Publish now';
+  }
+}
+function defNote() {
+  var _d = new Date(), _ymd = String(_d.getFullYear()).slice(2) + ('0' + (_d.getMonth() + 1)).slice(-2) + ('0' + _d.getDate()).slice(-2);
+  var tag = P._live ? '(Update) ' : '(Draft) ';
+  return P._restoreNote ? (tag + P._restoreNote) : (tag + _ymd + '_' + (P.title || P.process_id));
+}
+function afterSaveBanner(realSaved, kind) {
+  var msg = kind === 'live' ? '✓ Published — this is now live on the website.'
+    : (P._live ? '✓ Saved as a draft update — viewers still see the current live version until you publish.'
+              : '✓ Saved as draft — only people who can edit it will see it.');
+  if (kindOf(P) === 'process' && validate().length) { drawBanner(); }
+  else if ($('banner')) { $('banner').className = 'mk-banner mk-banner--ok'; $('banner').innerHTML = msg + (realSaved ? '' : ' <span style="opacity:.7;font-weight:400">(mockup — nothing was really saved)</span>'); }
+  if (kindOf(P) === 'alignment') Modal.alert(kind === 'live' ? 'Published' : 'Saved', msg);
+}
+function sendApprovalEmail() {
+  if (typeof window.__sendApprovalEmail !== 'function') return;
+  var _n = new Date(), _sub = ('0' + _n.getDate()).slice(-2) + '/' + ('0' + (_n.getMonth() + 1)).slice(-2) + '/' + _n.getFullYear() + ' ' + ('0' + _n.getHours()).slice(-2) + ':' + ('0' + _n.getMinutes()).slice(-2);
+  window.__sendApprovalEmail({ to: P.reviewer, title: P.title, pillar: PILLAR_LABEL[P.pillar] || P.pillar, type: KIND_LABEL[kindOf(P)] || kindOf(P),
+    pic: P.pic || '', reviewerName: nameFromEmail(P.reviewer), senderName: nameFromEmail(currentUser.email), senderEmail: currentUser.email, submittedAt: _sub,
+    link: location.href.split('#')[0] + '#/' + encodeURIComponent(P.pillar || '') + '/' + (slug(P.title) ? slug(P.title) + '~' : '') + encodeURIComponent(P.process_id) });
+}
+function doSaveDraft() {
+  Modal.prompt('Save draft', 'Short description of what you changed (saved to the edit history):', defNote(), function (m) {
+    if (m === null) return; delete P._restoreNote;
+    $('pub').disabled = true; $('pub').textContent = 'Saving…';
+    P.updatedAt = todayISO(); P.updatedBy = currentUser.email;
+    persist(m || 'Saved draft', function (ok, r) {
+      if (!ok) { updatePublishButton(); Modal.alert('Save failed', errText(r)); return; }
+      dirty = false; clearAutosave(P.process_id); pushHistory(P, m || 'Saved draft'); updatePublishButton(); afterSaveBanner(!(r && r.mock), 'draft');
+    });
+  });
+}
+function doSendForApproval() {
+  if (kindOf(P) === 'process') { var e = validate(); if (e.length) { Modal.alert('Fix these before sending', e.map(esc).join('<br>')); return; } }
+  var pr = P.review; P.review = 'pending'; P.updatedAt = todayISO(); P.updatedBy = currentUser.email;
+  $('pub').disabled = true; $('pub').textContent = 'Sending…';
+  persist('Sent for approval: ' + P.title, function (ok, r) {
+    if (!ok) { P.review = pr; updatePublishButton(); Modal.alert('Could not send', errText(r)); return; }
+    dirty = false; clearAutosave(P.process_id); pushHistory(P, 'Sent for approval'); addNotif('pending', P); notifyServer('Submitted for approval', P); sendApprovalEmail();
+    Modal.alert('Sent for approval', 'Sent to <b>' + esc(displayName(P.reviewer)) + '</b> for approval. They get an email (CC lnd.edl@pizza4ps.com) and can Approve — Approve &amp; publish — or Request changes.');
+    backFromEditor();
+  });
+}
+function doPublish(direct) {
+  if (kindOf(P) === 'process') { var e = validate(); if (e.length) { Modal.alert('Fix these before publishing', e.map(esc).join('<br>')); return; } }
+  var was = !!P._live, verb = was ? 'Publish update' : 'Publish';
+  var msg = direct ? ('This publishes "' + esc(P.title) + '" ' + (was ? 'update ' : '') + 'live now, without review.')
+                   : ('This makes the approved ' + (was ? 'update ' : 'version ') + 'live now.');
+  Modal.confirm(verb + '?', msg, function () {
+    $('pub').disabled = true; P.updatedAt = todayISO(); P.updatedBy = currentUser.email; P.review = 'none'; P._publish = true;
+    persist((was ? 'Published update: ' : 'Published: ') + P.title, function (ok, r) {
+      if (!ok) { delete P._publish; updatePublishButton(); Modal.alert('Publish failed', errText(r)); return; }
+      dirty = false; clearAutosave(P.process_id); pushHistory(P, was ? 'Published update' : 'Published');
+      addNotif('published', P); notifyServer('Published', P); notifyPublish(P); updatePublishButton(); afterSaveBanner(!(r && r.mock), 'live');
+    });
+  }, { okLabel: verb });
+}
+function doRecall() {
+  Modal.confirm('Recall from review?', 'Pull "' + esc(P.title) + '" back to Draft so you can keep editing. The reviewer will no longer see it as pending.', function () {
+    var pr = P.review; P.review = 'none'; P.updatedAt = todayISO(); P.updatedBy = currentUser.email;
+    persist('Recalled from review: ' + P.title, function (ok, r) {
+      if (!ok) { P.review = pr; Modal.alert('Could not recall', errText(r)); return; }
+      dirty = false; updatePublishButton(); Modal.alert('Recalled', 'Back to Draft — edit and re-send when ready.');
+    });
+  }, { okLabel: 'Recall' });
+}
+function doArchive() {
+  Modal.confirm('Archive this ' + KIND_LABEL[kindOf(P)].toLowerCase() + '?', 'It will be hidden from viewers (kept in Archived). The last published version is preserved and can be restored.', function () {
+    var ps = P.status; P.status = 'archived'; P.updatedAt = todayISO(); P.updatedBy = currentUser.email;
+    persist('Archived: ' + P.title, function (ok, r) {
+      if (!ok) { P.status = ps; Modal.alert('Could not archive', errText(r)); return; }
+      dirty = false; updatePublishButton(); Modal.alert('Archived', '"' + esc(P.title) + '" is archived.'); backFromEditor();
+    });
+  }, { danger: true, okLabel: 'Archive' });
+}
+function doRestore() {
+  var ps = P.status; P.status = 'draft'; P.updatedAt = todayISO(); P.updatedBy = currentUser.email;
+  persist('Restored: ' + P.title, function (ok, r) {
+    if (!ok) { P.status = ps; Modal.alert('Could not restore', errText(r)); return; }
+    dirty = false; addNotif('restored', P); updatePublishButton(); Modal.alert('Restored', '"' + esc(P.title) + '" is restored.');
+  });
 }
 function picLabel(step) {
   var lane = step.lane || '';
@@ -3126,7 +3235,8 @@ function heroFor(p, flowLabelHtml) {
   if (p.review === 'pending') {
     reviewChip = '<span class="rev-chip rev-chip--pending">In review — waiting for ' + esc(p.reviewer ? displayName(p.reviewer) : 'a reviewer') + '</span>';
     if (isReviewer(p)) approveBtns = '<button class="mk-btn hb-approve" id="approveBtn">✓ Approve</button>' +
-      '<button class="mk-btn mk-btn--primary" id="approvePubBtn">✓ Approve &amp; publish</button>';
+      '<button class="mk-btn mk-btn--primary" id="approvePubBtn">✓ Approve &amp; publish</button>' +
+      '<button class="mk-btn" id="reqChangesBtn" title="Send back to the author with a comment">↩ Request changes</button>';
   } else if (p.review === 'approved' && p.status !== 'live') {
     reviewChip = '<span class="rev-chip rev-chip--approved">Approved — ready to publish</span>';
   }
@@ -3150,22 +3260,34 @@ function wireItemHeader(p) {
   var db = $('delProcBtn'); if (db) db.onclick = function () { softDeleteItem(p); };
   var hb = $('histBtn'); if (hb) hb.onclick = function () { openHistory(p); };
   var a = $('approveBtn'); if (a) a.onclick = function () {
-    var prev = p.review; p.review = 'approved'; a.disabled = true;
+    var prev = p.review, prb = p.reviewedBy, pra = p.reviewedAt;
+    p.review = 'approved'; p.reviewedBy = currentUser.email; p.reviewedAt = todayISO(); a.disabled = true;
     persist('Approved: ' + p.title, function (ok, r) {
       a.disabled = false;
-      if (!ok) { p.review = prev; Modal.alert('Save failed', errText(r)); return; }
+      if (!ok) { p.review = prev; p.reviewedBy = prb; p.reviewedAt = pra; Modal.alert('Save failed', errText(r)); return; }
       addNotif('approved', p); notifyServer('Approved', p);
       Modal.alert('Approved', 'You approved "' + esc(p.title) + '". ' + esc(p.pic || 'The PIC') + ' (or you) can now publish it.'); render(); }); };
   var ap = $('approvePubBtn'); if (ap) ap.onclick = function () {
     Modal.confirm('Approve & publish?', 'This makes "' + esc(p.title) + '" live right now.', function () {
-      var pr = p.review, ps = p.status, pu = p.updatedAt, pb = p.updatedBy;
-      p.review = 'approved'; p.status = 'live'; p.updatedAt = todayISO(); p.updatedBy = currentUser.email;
+      var pr = p.review, pu = p.updatedAt, pb = p.updatedBy;
+      p.review = 'none'; p.updatedAt = todayISO(); p.updatedBy = currentUser.email; p.reviewedBy = currentUser.email; p.reviewedAt = todayISO(); p._publish = true;
       ap.disabled = true;
       persist('Approved & published: ' + p.title, function (ok, r) {
         ap.disabled = false;
-        if (!ok) { p.review = pr; p.status = ps; p.updatedAt = pu; p.updatedBy = pb; Modal.alert('Publish failed', errText(r)); return; }
+        if (!ok) { delete p._publish; p.review = pr; p.updatedAt = pu; p.updatedBy = pb; Modal.alert('Publish failed', errText(r)); return; }
         pushHistory(p, 'Approved & published'); addNotif('published', p); notifyServer('Approved & published', p); notifyPublish(p);
         Modal.alert('Published', '"' + esc(p.title) + '" is now live.'); render(); }); }, { okLabel: 'Approve & publish' }); };
+  var rq = $('reqChangesBtn'); if (rq) rq.onclick = function () {
+    Modal.prompt('Request changes', 'Leave a comment for the author (what needs changing):', '', function (cmt) {
+      if (cmt === null) return; cmt = (cmt || '').trim();
+      if (!cmt) { Modal.alert('Add a comment', 'Please write what needs changing so the author knows.'); return; }
+      var pr = p.review; p.review = 'none'; p.updatedAt = todayISO(); p.updatedBy = currentUser.email; p.reviewedBy = currentUser.email; p.reviewedAt = todayISO();
+      rq.disabled = true;
+      persist('Changes requested by ' + nameFromEmail(currentUser.email) + ': ' + cmt, function (ok, r) {
+        rq.disabled = false;
+        if (!ok) { p.review = pr; Modal.alert('Could not send', errText(r)); return; }
+        addNotif('changes', p); notifyServer('Changes requested', p);
+        Modal.alert('Sent back to the author', 'Your comment was saved to the history and the author was notified. It returns to Draft for them to edit.'); render(); }); }); };
 }
 /* ================= BU variant diff / compare (Đợt 2) ================= */
 /* Content signature for a step — two steps with the same id are "changed"
@@ -4209,60 +4331,14 @@ function wireEditorChrome() {
   $('pub').onclick = function () {
     var mode = $('pub').getAttribute('data-mode');
     if (mode === 'pending' || mode === 'invalid') return;
-    if (mode === 'send') {
-      var pr = P.review, pu = P.updatedAt, pb = P.updatedBy;
-      P.review = 'pending'; P.updatedAt = todayISO(); P.updatedBy = currentUser.email;
-      $('pub').disabled = true; $('pub').textContent = 'Sending…';
-      persist('Sent for approval: ' + P.title, function (ok, r) {
-        $('pub').disabled = false; updatePublishButton();
-        if (!ok) { P.review = pr; P.updatedAt = pu; P.updatedBy = pb; Modal.alert('Could not send', errText(r)); return; }
-        dirty = false; clearAutosave(P.process_id);
-        pushHistory(P, 'Sent for approval'); addNotif('pending', P); notifyServer('Submitted for approval', P);
-        var _n = new Date(), _sub = ('0' + _n.getDate()).slice(-2) + '/' + ('0' + (_n.getMonth() + 1)).slice(-2) + '/' + _n.getFullYear() + ' ' + ('0' + _n.getHours()).slice(-2) + ':' + ('0' + _n.getMinutes()).slice(-2);
-        if (typeof window.__sendApprovalEmail === 'function') window.__sendApprovalEmail({
-          to: P.reviewer, title: P.title, pillar: PILLAR_LABEL[P.pillar] || P.pillar, type: KIND_LABEL[kindOf(P)] || kindOf(P),
-          pic: P.pic || '', reviewerName: nameFromEmail(P.reviewer), senderName: nameFromEmail(currentUser.email),
-          senderEmail: currentUser.email, submittedAt: _sub,
-          link: location.href.split('#')[0] + '#/' + encodeURIComponent(P.pillar || '') + '/' + (slug(P.title) ? slug(P.title) + '~' : '') + encodeURIComponent(P.process_id) });
-        Modal.alert('Sent for approval', 'Sent to <b>' + esc(displayName(P.reviewer)) + '</b> for approval. The reviewer gets an email (CC lnd.edl@pizza4ps.com) and can Approve — or Approve &amp; publish — from the document page.');
-        backFromEditor();
-      });
-      return;
-    }
-    /* Only enforce validation when publishing (making it live). A draft saves as-is. */
-    if (kindOf(P) === 'process' && P.status !== 'draft') { var e = validate(); if (e.length) { Modal.alert('Fix these before publishing', e.map(esc).join('<br>')); return; } }
-    var verb = saveVerb();
-    var _d = new Date(), _ymd = String(_d.getFullYear()).slice(2) + ('0' + (_d.getMonth() + 1)).slice(-2) + ('0' + _d.getDate()).slice(-2);
-    var _tag = (P.status === 'draft') ? '(Draft) ' : '(Live) ';
-    var _def = P._restoreNote ? (_tag + P._restoreNote) : (_tag + _ymd + '_' + (P.title || P.process_id));
-    Modal.prompt(verb, 'Short description of what you changed (saved to the edit history):', _def, function (m) {
-      if (m === null) return;
-      delete P._restoreNote;
-      $('pub').disabled = true; $('pub').textContent = verb + '…';
-      var live = P.status === 'live';
-      P.updatedAt = todayISO(); P.updatedBy = currentUser.email;
-      if (P.status !== 'draft') P.review = 'none';
-      function commit(realSaved) {
-        $('pub').textContent = verb; dirty = false; delete P._restoreNote; clearAutosave(P.process_id);
-        pushHistory(P, m || (P.status === 'draft' ? 'Saved draft' : 'Published'));
-        if (live) { addNotif('published', P); notifyServer('Published', P); notifyPublish(P); }
-        updatePublishButton();
-        var msg = P.status === 'draft' ? '✓ Saved as draft — only people who can edit it will see it.' : '✓ Published — this is now live on the website.';
-        /* A process draft can be saved while still incomplete — keep the red
-           checklist visible so it's clear what still needs fixing. */
-        if (kindOf(P) === 'process' && validate().length) { drawBanner(); Modal.alert('Saved as draft', msg + '<br><br>It still has items to fix before it can be published (see the red checklist).'); }
-        else {
-          if ($('banner')) { $('banner').className = 'mk-banner mk-banner--ok';
-            $('banner').innerHTML = msg + (realSaved ? '' : ' <span style="opacity:.7;font-weight:400">(mockup — nothing was really saved)</span>'); }
-          if (kindOf(P) === 'alignment') Modal.alert(P.status === 'draft' ? 'Saved as draft' : 'Published', msg);
-        }
-      }
-      persist(m, function (ok, r) {
-        if (ok) commit(!(r && r.mock));
-        else { $('pub').textContent = verb; updatePublishButton(); Modal.alert('Save failed', errText(r)); }
-      });
-    });
+    if (mode === 'restore') return doRestore();
+    if (mode === 'send') return doSendForApproval();
+    if (mode === 'publish') return doPublish(false);
+    doSaveDraft();
   };
+  var rcB = $('recallBtn'); if (rcB) rcB.onclick = function () { doRecall(); };
+  var arB = $('archiveBtn'); if (arB) arB.onclick = function () { doArchive(); };
+  var apB = $('adminPubBtn'); if (apB) apB.onclick = function () { doPublish(true); };
 }
 
 /* ============================ admin: manage access ============================ */
@@ -4401,7 +4477,7 @@ function wireBrand() {
   $('brandLink').onclick = function (ev) { ev.preventDefault(); goHome(); };
   $('adminLink').onclick = function (ev) { ev.preventDefault(); goAdmin(); };
 }
-var NOTIF_LABEL = { pending: '⏳ Waiting for approval', approved: '✓ Approved', published: '📣 Published', deleted: '🗑 Deleted', restored: '↩ Restored' };
+var NOTIF_LABEL = { pending: '⏳ Waiting for approval', approved: '✓ Approved', published: '📣 Published', changes: '↩ Changes requested', deleted: '🗑 Deleted', restored: '↩ Restored' };
 var bellFilter = 'all', bellQuery = '', bellPic = '', bellFilterOpen = false;
 function renderBellPanel() {
   var P2 = $('bellPanel');
@@ -4535,6 +4611,11 @@ if (typeof GAS_MODE === 'undefined' || !GAS_MODE) bootApp();
     if(!content)return null;
     var p=Object.assign({},content,{process_id:r.process_id,kind:r.kind||'process',pillar:r.pillar,pic:r.pic||'',reviewer:r.reviewer||'',review:r.review||'none',createdBy:r.created_by||'',createdAt:r.created_at||'',updatedAt:r.updated_at||'',updatedBy:r.updated_by||'',reviewedBy:r.reviewed_by||'',reviewedAt:r.reviewed_at||'',deleted:!!r.deleted,deletedBy:r.deleted_by||'',deletedAt:r.deleted_at||'',status:statusOf(r),_id:r.id});
     p.title=content.title||r.title||''; p.subtitle=content.subtitle||r.subtitle||'';
+    /* Versioning signals for the editor UI (transient, never persisted):
+       _live = there is a published version viewers can see;
+       _pendingUpdate = the working draft differs from what's published. */
+    p._live = !!r.published && !r.archived;
+    try{ p._pendingUpdate = !!(r.published && r.draft && JSON.stringify(r.draft)!==JSON.stringify(r.published)); }catch(e){ p._pendingUpdate=false; }
     PUBLISHED[r.process_id]=r.published||null; DOCID[r.process_id]=r.id; return p;
   }
   function supaHistory(pid){
@@ -4571,16 +4652,23 @@ if (typeof GAS_MODE === 'undefined' || !GAS_MODE) bootApp();
     });
   }
   function supaSave(processes,msg){
-    var changed=(processes||[]).filter(function(p){return sig(p)!==ORIG[p.process_id];});
+    var changed=(processes||[]).filter(function(p){return sig(p)!==ORIG[p.process_id]||p._publish;});
     if(!changed.length)return Promise.resolve({ok:true});
     return Promise.all(changed.map(function(p){
       var content=contentOf(p);
-      var pub=(p.status==='live')?content:(PUBLISHED[p.process_id]||null);
-      var row={process_id:p.process_id,kind:p.kind||'process',pillar:p.pillar,title:p.title||'',subtitle:p.subtitle||'',status:p.status||'draft',pic:p.pic||'',reviewer:p.reviewer||'',review:p.review||'none',draft:content,published:pub,archived:(p.status==='archived'),deleted:!!p.deleted,deleted_by:p.deletedBy||null,deleted_at:p.deletedAt||null,updated_by:MYEMAIL,created_by:p.createdBy||MYEMAIL};
+      /* published ONLY changes on an explicit publish; a plain save of a live
+         document keeps the old published version so viewers still see it. */
+      var doPublish=!!p._publish; delete p._publish;
+      var archivedFlag=(p.status==='archived');
+      var pub=doPublish?content:(PUBLISHED[p.process_id]||null);
+      var st=archivedFlag?'archived':(pub?'live':'draft');
+      var row={process_id:p.process_id,kind:p.kind||'process',pillar:p.pillar,title:p.title||'',subtitle:p.subtitle||'',status:st,pic:p.pic||'',reviewer:p.reviewer||'',review:p.review||'none',draft:content,published:pub,archived:archivedFlag,deleted:!!p.deleted,deleted_by:p.deletedBy||null,deleted_at:p.deletedAt||null,updated_by:MYEMAIL,created_by:p.createdBy||MYEMAIL};
       return SB.from('documents').upsert(row,{onConflict:'process_id'}).select().single().then(function(res){
-        if(res.error)throw res.error; var s=res.data; PUBLISHED[p.process_id]=s.published; ORIG[p.process_id]=sig(p);
+        if(res.error)throw res.error; var s=res.data; PUBLISHED[p.process_id]=s.published; p.status=st;
+        p._live=!!s.published&&!s.archived; try{p._pendingUpdate=!!(s.published&&s.draft&&JSON.stringify(s.draft)!==JSON.stringify(s.published));}catch(e){p._pendingUpdate=false;}
+        ORIG[p.process_id]=sig(p);
         return SB.from('document_versions').insert({document_id:s.id,snapshot:s,message:msg||'Cập nhật',changed_by:MYEMAIL}).then(function(){
-          return SB.from('audit_log').insert({actor:MYEMAIL,action:(p.status==='live'?'publish':'save'),process_id:p.process_id,title:p.title,detail:msg||''});
+          return SB.from('audit_log').insert({actor:MYEMAIL,action:(doPublish?'publish':'save'),process_id:p.process_id,title:p.title,detail:msg||''});
         });
       });
     })).then(function(){return {ok:true};}).catch(function(e){return {ok:false,errors:[e.message||String(e)]};});
