@@ -1550,8 +1550,17 @@ var MARK_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABDgAAAM7CAYAA
       side.forEach(function (f) {
         var b = f.b, y = a.y + a.h / 2, sx, tx;
         if (b.x >= a.x) { sx = a.x + a.w; tx = b.x; } else { sx = a.x; tx = b.x + b.w; }
-        var path = 'M' + sx + ',' + (a.y + a.h / 2) + ' L' + tx + ',' + (b.y + b.h / 2);
-        conns.push({ from: s.id, to: f.e.to, path: path, label: f.e.label, labelPos: { x: (sx + tx) / 2, y: y - 8 }, back: false });
+        /* Is another box sitting between the two on this row? If so, a straight
+           sideways line would cut through it — detour through the gap below. */
+        var blocked = nodes.some(function (n) { return n.depth === a.depth && n.id !== s.id && n.id !== f.e.to && (n.x + n.w) > Math.min(a.x + a.w, b.x + b.w) && n.x < Math.max(a.x, b.x); });
+        if (!blocked) {
+          var path = 'M' + sx + ',' + y + ' L' + tx + ',' + (b.y + b.h / 2);
+          conns.push({ from: s.id, to: f.e.to, path: path, label: f.e.label, labelPos: { x: (sx + tx) / 2, y: y - 8 }, back: false });
+        } else {
+          var gy = a.y + a.h + ROW_GAP * 0.5, x1c = a.x + a.w / 2, x2c = b.x + b.w / 2;
+          var path = 'M' + x1c + ',' + (a.y + a.h) + ' L' + x1c + ',' + gy + ' L' + x2c + ',' + gy + ' L' + x2c + ',' + (b.y + b.h);
+          conns.push({ from: s.id, to: f.e.to, path: path, label: f.e.label, labelPos: { x: (x1c + x2c) / 2, y: gy - 8 }, back: false });
+        }
       });
       /* Group forward edges by the row they land on. Several children that share
          a row (a fork across PICs) are fed by ONE horizontal bus with a short
@@ -1571,21 +1580,23 @@ var MARK_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABDgAAAM7CAYAA
         } else {
           var f = group[0], b = f.b, x2 = b.x + b.w / 2, y2 = b.y, path, lp;
           if (b.depth - a.depth >= 2 && x1 !== x2) {
-            /* Long jump across several rows to another lane: route it down the
-               reserved channel on the right instead of straight down the target
-               column, where it would cut through the steps (and their arrows)
-               sitting in between. */
-            var sx = a.x + a.w, sy = a.y + a.h / 2;
+            /* Long jump across several rows to another lane: leave the box from
+               its BOTTOM into the (box-free) row gap, run along the gap to a
+               reserved channel on the right, drop down the channel, then along
+               the gap above the target and up into its top — so it never cuts
+               across a box or another box's row. */
             var channelX = rightEdge + BACK_GAP + (backSeen++) * BACK_GAP;
-            var tx = b.x + b.w, ty = b.y + b.h / 2;
-            path = 'M' + sx + ',' + sy + ' L' + channelX + ',' + sy + ' L' + channelX + ',' + ty + ' L' + tx + ',' + ty;
-            conns.push({ from: s.id, to: f.e.to, path: path, label: f.e.label, labelPos: { x: channelX - 6, y: (sy + ty) / 2 - 8 }, back: true });
+            var gy1 = a.y + a.h + ROW_GAP * 0.5, gy2 = b.y - ROW_GAP * 0.5;
+            path = 'M' + x1 + ',' + (a.y + a.h) + ' L' + x1 + ',' + gy1 + ' L' + channelX + ',' + gy1 + ' L' + channelX + ',' + gy2 + ' L' + x2 + ',' + gy2 + ' L' + x2 + ',' + y2;
+            conns.push({ from: s.id, to: f.e.to, path: path, label: f.e.label, labelPos: { x: channelX - 6, y: (gy1 + gy2) / 2 - 8 }, back: true });
           } else {
             if (x1 === x2) {
               path = 'M' + x1 + ',' + y1 + ' L' + x2 + ',' + y2;
               lp = { x: x1 + 10, y: (y1 + y2) / 2 - 8 };
             } else {
-              var yBend = y1 + Math.min(ROW_GAP * 0.55, Math.max(18, (y2 - y1) / 2));
+              /* bend in the gap BELOW the whole source row (past any taller box
+                 in that row), so the sideways part never clips a neighbour. */
+              var yBend = rowTop[a.depth] + (rowH[a.depth] || NODE_H) + ROW_GAP * 0.5;
               path = 'M' + x1 + ',' + y1 + ' L' + x1 + ',' + yBend + ' L' + x2 + ',' + yBend + ' L' + x2 + ',' + y2;
               lp = { x: (x1 + x2) / 2 + 10, y: yBend - 8 };
             }
@@ -1594,11 +1605,14 @@ var MARK_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABDgAAAM7CAYAA
         }
       });
       bk.forEach(function (f) {
-        var b = f.b, sx = a.x + a.w, sy = a.y + a.h / 2;
+        var b = f.b, x1c = a.x + a.w / 2, x2c = b.x + b.w / 2;
         var channelX = rightEdge + BACK_GAP + (backSeen++) * BACK_GAP;
-        var tx = b.x + b.w, ty = b.y + b.h / 2;
-        var path = 'M' + sx + ',' + sy + ' L' + channelX + ',' + sy + ' L' + channelX + ',' + ty + ' L' + tx + ',' + ty;
-        conns.push({ from: s.id, to: f.e.to, path: path, label: f.e.label, labelPos: { x: channelX - 6, y: (sy + ty) / 2 - 8 }, back: true });
+        var gy1 = a.y - ROW_GAP * 0.5, gy2 = b.y + b.h + ROW_GAP * 0.5;
+        /* Back / upward arrow: leave the TOP into the gap above, along to the
+           right channel, up to the gap below the target, then into its bottom —
+           never crossing a box in between. */
+        var path = 'M' + x1c + ',' + a.y + ' L' + x1c + ',' + gy1 + ' L' + channelX + ',' + gy1 + ' L' + channelX + ',' + gy2 + ' L' + x2c + ',' + gy2 + ' L' + x2c + ',' + (b.y + b.h);
+        conns.push({ from: s.id, to: f.e.to, path: path, label: f.e.label, labelPos: { x: channelX - 6, y: (gy1 + gy2) / 2 - 8 }, back: true });
       });
     });
 
