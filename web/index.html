@@ -584,11 +584,13 @@ img{ max-width: 100%; display:block; }
 .dg-node--left{justify-content:flex-start;text-align:left;padding-left:12px}
 
 /* ===================== vertical swimlane diagram ===================== */
-.dg-wrap--vert{display:block;border:1px solid var(--hairline);border-radius:var(--radius-lg);
+.dg-wrap--vert{display:block;position:relative;border:1px solid var(--hairline);border-radius:var(--radius-lg);
   background:var(--paper-raised);overflow:hidden;box-shadow:var(--shadow-sm)}
 .dg-scroll--vert{overflow:auto;max-height:70vh}
-.dg-rail--top{position:relative;height:44px;background:var(--lane-bg);
+.dg-rail--top{position:relative;z-index:7;height:44px;background:var(--lane-bg);
   border-bottom:1px solid var(--hairline);border-right:none;min-width:100%;flex:none}
+.dg-phaserail{position:absolute;left:1px;bottom:1px;overflow:hidden;background:var(--paper-raised);z-index:5;pointer-events:none}
+.dg-phasetrack{position:absolute;top:0;left:0;right:0;will-change:transform}
 .dg-rail__label--top{position:absolute;top:0;right:auto;height:100%;display:flex;align-items:center;
   justify-content:center;text-align:center;padding:4px 8px;border-right:1px solid var(--hairline);
   font-family:var(--font-body);font-weight:700;font-size:9.5px;letter-spacing:.05em;line-height:1.25;
@@ -1759,16 +1761,18 @@ var MARK_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABDgAAAM7CAYAA
       }
     });
 
-    if (g.phases && g.phases.length) {
+    /* Phase column lives in a frozen-left rail (not the scrolling canvas) so it
+       stays pinned when scrolling horizontally; it follows vertical scroll. */
+    var phaseRail = null, phaseTrack = null, phaseBands = [];
+    if (g.phases && g.phases.length && g.phaseW) {
+      phaseRail = document.createElement('div'); phaseRail.className = 'dg-phaserail';
+      phaseTrack = document.createElement('div'); phaseTrack.className = 'dg-phasetrack';
+      phaseRail.appendChild(phaseTrack);
       g.phases.forEach(function (ph) {
         var band = document.createElement('div');
-        band.className = 'dg-phase';
-        band.style.left = '8px';
-        band.style.width = ((g.phaseW || 80) - 14) + 'px';
-        band.style.top = ph.top + 'px';
-        band.style.height = (ph.bottom - ph.top) + 'px';
+        band.className = 'dg-phase'; band.__ph = ph;
         band.innerHTML = '<span>' + esc(ph.label) + '</span>';
-        canvas.appendChild(band);
+        phaseTrack.appendChild(band); phaseBands.push(band);
       });
     }
 
@@ -1812,7 +1816,15 @@ var MARK_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABDgAAAM7CAYAA
     var wrap = document.createElement('div');
     wrap.className = 'dg-wrap dg-wrap--vert';
     wrap.appendChild(head); wrap.appendChild(scroll);
+    if (phaseRail) wrap.appendChild(phaseRail);
     el.appendChild(wrap);
+    /* Freeze panes: PIC header follows horizontal scroll (it's already pinned to
+       the top); the phase rail follows vertical scroll (it's already pinned left). */
+    function syncFreeze() {
+      head.style.transform = 'translateX(' + (-scroll.scrollLeft) + 'px)';
+      if (phaseTrack) phaseTrack.style.transform = 'translateY(' + (-scroll.scrollTop) + 'px)';
+    }
+    scroll.addEventListener('scroll', syncFreeze);
 
     var fitScale = 1, curScale = 1;
     function computeFit() { return Math.min(1, Math.max(0.15, wrap.clientWidth / g.canvas.width)); }
@@ -1837,6 +1849,20 @@ var MARK_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABDgAAAM7CAYAA
         if (lines > maxLines) maxLines = lines;
       });
       head.style.height = Math.max(44, Math.min(104, maxLines * lineH + 14)) + 'px';
+      if (phaseRail) {
+        phaseRail.style.top = head.style.height;
+        phaseRail.style.width = (g.phaseW * scale) + 'px';
+        var pfs = Math.max(10, 13 * scale);
+        phaseBands.forEach(function (band) {
+          var ph = band.__ph;
+          band.style.top = (ph.top * scale) + 'px';
+          band.style.height = ((ph.bottom - ph.top) * scale) + 'px';
+          band.style.left = (8 * scale) + 'px';
+          band.style.width = ((g.phaseW - 14) * scale) + 'px';
+          var sp = band.querySelector('span'); if (sp) sp.style.fontSize = pfs + 'px';
+        });
+      }
+      syncFreeze();
     }
     fitScale = computeFit();
     apply(opts.zoom || fitScale);
