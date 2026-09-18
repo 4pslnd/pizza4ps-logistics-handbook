@@ -3272,12 +3272,15 @@ function drawProcess(p) {
   /* Hero counts reflect the currently shown flow in diagram mode, Base otherwise. */
   var refFlow = (viewMode === 'diagram') ? flowOf(p, viewVariant) : p;
   var c = counts(refFlow), t = processTotals(refFlow);
+  /* The "working days" estimate is L&D's own effort, so the note only applies to
+     processes L&D actually run (a step whose PIC is EDL / TPM / Intern). */
+  var ldRun = (refFlow.steps || []).some(function (s) { return /(^|[^A-Za-z])(EDL|TPM|Intern)([^A-Za-z]|$)/i.test(s.lane || ''); });
   var metaChips = '<div class="proc-meta"><span class="proc-meta__chip">' + plural(c.steps, 'step') + '</span>' +
     '<span class="proc-meta__chip">' + plural(c.gates, 'review gate') + '</span>' +
     (t.hasDays ? '<span class="proc-meta__chip">' + t.perPersonDays + ' working days / person</span>' : '') +
     (t.hasPIC ? '<span class="proc-meta__chip">No. PIC ' + t.peakPIC + '</span>' : '') +
     (t.hasDays ? '<span class="proc-meta__chip">' + t.totalDays + ' total working days</span>' : '') + '</div>' +
-    (t.hasDays ? '<p class="proc-meta__note">Working days are estimated from how many days L&amp;D do each step within a month.</p>' : '');
+    (t.hasDays && ldRun ? '<p class="proc-meta__note">Working days are estimated from how many days L&amp;D do each step within a month.</p>' : '');
   /* Mode segmented control — only when the process has BU variants */
   function seg(m, label) { return '<button type="button" class="hb-modeseg' + (viewMode === m ? ' is-on' : '') + '" data-mode="' + m + '">' + label + '</button>'; }
   var modeCtl = vs.length ? '<span class="hb-modebar">' + seg('diagram', 'Diagram') + seg('compare', 'Compare') + seg('matrix', 'All BUs') + '</span>' : '';
