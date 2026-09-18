@@ -710,6 +710,9 @@ img{ max-width: 100%; display:block; }
   font-variant-numeric:tabular-nums;z-index:4;box-shadow:var(--shadow-sm)}
 .dg-hold{position:relative}
 .dg-zoomctl--float{position:absolute;top:8px;right:8px;z-index:6;background:var(--paper-raised)}
+.dg-hint--bar{margin:0 10px 0 0;white-space:nowrap;color:var(--ink-faint)}
+.dg-scroll--grab{cursor:grab}
+.dg-scroll--grabbing{cursor:grabbing;user-select:none}
 
 /* working-days badge, corner-mounted on action/decision boxes */
 .dg-node-badge{position:absolute;transform:translate(-50%,-50%);background:#fff;color:var(--ink);
@@ -1123,9 +1126,10 @@ textarea{resize:vertical;min-height:60px;line-height:1.5}
       <div class="mk-col mk-col--diagram">
         <div id="banner"></div>
         <div class="proc-diagram__label">
-          <span style="display:flex;align-items:center;gap:10px"><h2>Preview</h2><span id="procTotals" style="display:flex;gap:6px"></span></span></div>
+          <span style="display:flex;align-items:center;gap:10px"><h2>Preview</h2><span id="procTotals" style="display:flex;gap:6px"></span></span>
+          <span class="dg-zoomctl" id="zoomCtl"></span></div>
         <div id="laneOrderBar" class="lo-bar" hidden></div>
-        <div class="dg-hold"><div id="diagram"></div><span class="dg-zoomctl dg-zoomctl--float" id="zoomCtl"></span></div>
+        <div id="diagram"></div>
         <div class="dg-legend">
           <span class="dg-legend__item"><i class="dg-legend__swatch" style="background:#02499D"></i>Action step</span>
           <span class="dg-legend__item"><i class="dg-legend__swatch" style="background:#BF6B1F"></i>Review / decision</span>
@@ -1759,8 +1763,37 @@ var MARK_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABDgAAAM7CAYAA
     zoom.appendChild(canvas);
 
     var scroll = document.createElement('div');
-    scroll.className = 'dg-scroll dg-scroll--vert';
+    scroll.className = 'dg-scroll dg-scroll--vert dg-scroll--grab';
     scroll.appendChild(zoom);
+
+    /* Hand / drag-to-pan anywhere on the flowchart (the scrollbar still works).
+       A click that barely moves still selects a step; a real drag pans. */
+    (function () {
+      var panning = false, moved = false, sx = 0, sy = 0, sl = 0, st = 0, pid = null;
+      scroll.addEventListener('pointerdown', function (e) {
+        if (e.button !== 0) return;
+        if (e.target.closest && e.target.closest('.dg-node, .dg-sub-toggle, button, a')) return; /* let boxes/toggles work */
+        panning = true; moved = false; pid = e.pointerId;
+        sx = e.clientX; sy = e.clientY; sl = scroll.scrollLeft; st = scroll.scrollTop;
+        scroll.classList.add('dg-scroll--grabbing');
+        try { scroll.setPointerCapture(e.pointerId); } catch (_) {}
+      });
+      scroll.addEventListener('pointermove', function (e) {
+        if (!panning) return;
+        var dx = e.clientX - sx, dy = e.clientY - sy;
+        if (Math.abs(dx) + Math.abs(dy) > 3) moved = true;
+        scroll.scrollLeft = sl - dx; scroll.scrollTop = st - dy;
+      });
+      function end(e) {
+        if (!panning) return; panning = false;
+        scroll.classList.remove('dg-scroll--grabbing');
+        try { scroll.releasePointerCapture(pid); } catch (_) {}
+      }
+      scroll.addEventListener('pointerup', end);
+      scroll.addEventListener('pointercancel', end);
+      /* swallow the click that ends a real drag so it doesn't also select a box */
+      scroll.addEventListener('click', function (e) { if (moved) { e.stopPropagation(); e.preventDefault(); moved = false; } }, true);
+    })();
 
     var wrap = document.createElement('div');
     wrap.className = 'dg-wrap dg-wrap--vert';
@@ -3418,9 +3451,11 @@ function drawProcess(p) {
       vs.map(function (v) { return '<option value="' + esc(v.key) + '"' + (compareWith === v.key ? ' selected' : '') + '>' + esc(v.name) + '</option>'; }).join('') +
       '</select></label>';
   }
+  var hintZoom = (viewMode === 'matrix') ? '' :
+    '<span class="dg-legend__hint dg-hint--bar">Click a step to see full details</span><span class="dg-zoomctl" id="siteZoomCtl"></span>';
   S.innerHTML = heroFor(p, metaChips) +
     '<section class="proc-diagram"><div class="proc-diagram__label"><h2>Process flow</h2>' +
-    modeCtl + '<span class="mk-grow"></span>' + rightCtl + '</div>' +
+    modeCtl + '<span class="mk-grow"></span>' + rightCtl + hintZoom + '</div>' +
     '<div id="procBody"></div></section>';
   wireItemHeader(p);
   /* mode + selector wiring */
@@ -3441,9 +3476,8 @@ function renderProcDiagram(p) {
     '<div class="dg-legend">' +
     '<span class="dg-legend__item"><i class="dg-legend__swatch" style="background:#02499D"></i>Action step</span>' +
     '<span class="dg-legend__item"><i class="dg-legend__swatch" style="background:#BF6B1F"></i>Review / decision</span>' +
-    '<span class="dg-legend__item"><i class="dg-legend__swatch" style="background:#2A4728"></i>Start / End</span>' +
-    '<span class="dg-legend__hint">Click a step to see full details</span></div>' +
-    '<div class="proc-layout"><div class="dg-hold"><div id="sdiag"></div><span class="dg-zoomctl dg-zoomctl--float" id="siteZoomCtl"></span></div><div id="sdetail"></div></div>';
+    '<span class="dg-legend__item"><i class="dg-legend__swatch" style="background:#2A4728"></i>Start / End</span></div>' +
+    '<div class="proc-layout"><div id="sdiag"></div><div id="sdetail"></div></div>';
   var steps = flow.steps || [];
   var first = steps.filter(function (s) { return s.type !== 'start' && s.type !== 'end'; })[0];
   function renderDiag(keepZoom) {
@@ -3475,7 +3509,7 @@ function renderProcCompare(p) {
     '<span class="dg-legend__item"><i class="dg-legend__swatch" style="background:#2E9B4F"></i>Added in ' + esc(variant.name) + '</span>' +
     '<span class="dg-legend__item"><i class="dg-legend__swatch" style="background:#E0912F"></i>Changed</span>' +
     '<span class="dg-legend__item"><i class="dg-legend__swatch" style="background:#C0392B"></i>Removed (not used here)</span></div>' +
-    '<div class="proc-layout"><div class="dg-hold"><div id="sdiag"></div><span class="dg-zoomctl dg-zoomctl--float" id="siteZoomCtl"></span></div><div id="sdetail"></div></div>';
+    '<div class="proc-layout"><div id="sdiag"></div><div id="sdetail"></div></div>';
   $('sdetail').innerHTML = diffListHTML(p, variant, diff);
   function highlight(id) {
     document.querySelectorAll('#sdetail .di').forEach(function (d) { d.classList.toggle('is-on', d.getAttribute('data-di') === id); });
