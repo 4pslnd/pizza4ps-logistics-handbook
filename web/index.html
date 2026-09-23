@@ -721,11 +721,11 @@ img{ max-width: 100%; display:block; }
   font-variant-numeric:tabular-nums;z-index:4;box-shadow:var(--shadow-sm)}
 .dg-hold{position:relative}
 .dg-zoomctl--float{position:absolute;top:8px;right:8px;z-index:6;background:var(--paper-raised)}
-/* floating toolbar pinned to the flowchart's top-right corner (zoom + optional hint) */
-.dg-tools{position:absolute;top:10px;right:12px;z-index:8;display:inline-flex;align-items:center;gap:8px;pointer-events:none}
-.dg-tools .dg-zoomctl{pointer-events:auto;background:var(--paper-raised);box-shadow:0 2px 6px rgba(36,47,82,.16)}
-.dg-tools__hint{font-family:var(--font-body);font-weight:500;font-size:11px;color:var(--ink-faint);
-  background:var(--paper-raised);padding:4px 10px;border-radius:999px;white-space:nowrap;box-shadow:0 2px 6px rgba(36,47,82,.10)}
+/* toolbar on a thin row ABOVE the flowchart frame (outside the table), right-
+   aligned to the flowchart column so it never covers the lane header or the
+   step-description panel (zoom + optional hint) */
+.dg-topbar{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin:0 0 8px}
+.dg-topbar__hint{font-family:var(--font-body);font-weight:500;font-size:11.5px;color:var(--ink-faint);white-space:nowrap}
 .dg-hint--bar{margin:0 10px 0 0;white-space:nowrap;color:var(--ink-faint)}
 .dg-scroll--grab{cursor:grab}
 .dg-scroll--grabbing{cursor:grabbing;user-select:none}
@@ -1776,16 +1776,31 @@ var MARK_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABDgAAAM7CAYAA
     svg.setAttribute('width', g.canvas.width);
     svg.setAttribute('height', g.canvas.height);
     var defs = document.createElementNS(NS, 'defs');
+    var arMarks = [];
     [['ar', '#242F52'], ['ar-yes', '#2A4728'], ['ar-no', '#BF6B1F']].forEach(function (m) {
       var mk = document.createElementNS(NS, 'marker');
-      mk.setAttribute('id', m[0]); mk.setAttribute('markerWidth', '9');
-      mk.setAttribute('markerHeight', '9'); mk.setAttribute('refX', '8');
-      mk.setAttribute('refY', '3'); mk.setAttribute('orient', 'auto');
+      mk.setAttribute('id', m[0]); mk.setAttribute('orient', 'auto');
+      mk.setAttribute('markerUnits', 'userSpaceOnUse');   /* size in canvas units so we can counter-scale it */
       var pa = document.createElementNS(NS, 'path');
-      pa.setAttribute('d', 'M0,0 L8,3 L0,6 z'); pa.setAttribute('fill', m[1]);
+      pa.setAttribute('fill', m[1]);
       mk.appendChild(pa); defs.appendChild(mk);
+      arMarks.push({ mk: mk, pa: pa });
     });
     svg.appendChild(defs);
+    /* Keep every arrowhead a constant on-screen size at any zoom. The whole
+       diagram is drawn then scaled by one CSS transform, which would otherwise
+       shrink the heads until they vanish on large (auto-fit-to-small) flows —
+       the reason some processes looked like they had lines but no arrows. We
+       counter-scale the marker geometry by ~1/scale so the head stays ~11px. */
+    function sizeMarkers(scale) {
+      var k = Math.max(1, Math.min(6, 1 / Math.max(0.0001, scale)));
+      var w = 11 * k, h = 9 * k;
+      arMarks.forEach(function (o) {
+        o.mk.setAttribute('markerWidth', w); o.mk.setAttribute('markerHeight', h);
+        o.mk.setAttribute('refX', w); o.mk.setAttribute('refY', h / 2);
+        o.pa.setAttribute('d', 'M0,0 L' + w + ',' + (h / 2) + ' L0,' + h + ' z');
+      });
+    }
 
     g.connections.forEach(function (c) {
       var kind = c.label === 'Yes' ? 'yes' : (c.label === 'No' ? 'no' : '');
@@ -1933,6 +1948,7 @@ var MARK_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABDgAAAM7CAYAA
     function computeFit() { return Math.min(1, Math.max(0.15, wrap.clientWidth / g.canvas.width)); }
     function apply(scale) {
       curScale = scale;
+      sizeMarkers(scale);
       if (zoomPctEl) zoomPctEl.textContent = Math.round(scale * 100) + '%';
       zoom.style.transform = 'scale(' + scale + ')';
       zoom.style.transformOrigin = 'top left';
@@ -1968,16 +1984,18 @@ var MARK_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABDgAAAM7CAYAA
       }
       syncFreeze();
     }
-    /* Floating zoom control (+ optional hint) pinned to the flowchart's own
-       top-right corner — on every diagram, since every diagram renders here. */
+    /* Zoom control (+ optional hint) on a thin bar ABOVE the flowchart frame,
+       right-aligned to the flowchart column — on every diagram, since every
+       diagram renders here. Inserted before the frame so it never covers the
+       lane header, and confined to this column so it's never over the detail. */
     var tools = document.createElement('div');
-    tools.className = 'dg-tools';
-    if (opts.hint) { var hintEl = document.createElement('span'); hintEl.className = 'dg-tools__hint'; hintEl.textContent = opts.hint; tools.appendChild(hintEl); }
+    tools.className = 'dg-topbar';
+    if (opts.hint) { var hintEl = document.createElement('span'); hintEl.className = 'dg-topbar__hint'; hintEl.textContent = opts.hint; tools.appendChild(hintEl); }
     var zc = document.createElement('div'); zc.className = 'dg-zoomctl';
     zc.innerHTML = '<button type="button" class="dg-zoomctl__btn" data-z="out" aria-label="Zoom out">−</button>' +
       '<span class="dg-zoomctl__pct" title="Click to fit">100%</span>' +
       '<button type="button" class="dg-zoomctl__btn" data-z="in" aria-label="Zoom in">+</button>';
-    tools.appendChild(zc); wrap.appendChild(tools);
+    tools.appendChild(zc); el.insertBefore(tools, wrap);
     zoomPctEl = zc.querySelector('.dg-zoomctl__pct');
     zc.querySelector('[data-z="out"]').onclick = function () { apply(Math.max(0.15, curScale - 0.1)); };
     zc.querySelector('[data-z="in"]').onclick = function () { apply(Math.min(1.6, curScale + 0.1)); };
