@@ -1029,6 +1029,24 @@ textarea{resize:vertical;min-height:60px;line-height:1.5}
 .adm-item__name{display:flex;align-items:center;gap:8px}
 .adm-item__name .kind-tag{font-size:8.5px;padding:2px 6px}
 .pillar-tag--nodot{gap:0}
+/* redesigned access panel: search, segmented None/View/Edit, per-pillar & per-BU overrides */
+.adm-search{width:100%;padding:8px 12px;border:1px solid var(--hairline-strong);border-radius:9px;font-family:var(--font-body);font-size:13px;margin-bottom:10px;background:var(--paper)}
+.acc-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--hairline)}
+.acc-name{flex:1;font-size:14px;font-weight:600;color:var(--ink)}
+.acc-name .acc-sm{display:block;color:var(--ink-faint);font-weight:400;font-size:11.5px}
+.acc-seg{display:inline-flex;border:1px solid var(--hairline-strong);border-radius:999px;overflow:hidden;flex:none}
+.acc-seg__b{border:0;background:var(--paper-raised);color:var(--ink-soft);font-family:var(--font-body);font-size:12px;font-weight:600;padding:5px 12px;cursor:pointer}
+.acc-seg__b+.acc-seg__b{border-left:1px solid var(--hairline)}
+.acc-seg__b:hover{background:var(--lane-bg)}
+.acc-seg__b.is-on{background:var(--indigo-1);color:#fff}
+.acc-seg__b.is-on.acc--view{background:var(--olive-ink);color:#fff}
+.acc-seg__b.is-on.acc--edit{background:var(--indigo-2);color:#fff}
+.acc-exp{border:0;background:none;color:var(--indigo-2);font-family:var(--font-body);font-weight:600;font-size:12px;cursor:pointer;padding:2px 0 8px}
+.acc-exp--inline{padding:0}
+.acc-subrows{padding:2px 0 8px 14px;border-left:2px solid var(--lane-bg);margin:0 0 6px 2px}
+.acc-subrow{display:flex;align-items:center;gap:10px;padding:6px 2px;font-size:13px}
+.acc-subname{flex:1;color:var(--ink-soft);min-width:0}
+.acc-guide{font-size:12px;color:var(--ink-faint);padding:11px 0;border-top:1px solid var(--hairline)}
 
 /* ------------------------------ 3-col editor ------------------------------ */
 .mk-cols{display:grid;grid-template-columns:minmax(0,1fr) 300px 380px;height:calc(100vh - 112px);min-height:600px}
@@ -2111,12 +2129,18 @@ var MEMBERS = [
 ];
 var currentUser = MEMBERS[0];
 function memberByEmail(e) { for (var i = 0; i < MEMBERS.length; i++) if (MEMBERS[i].email === e) return MEMBERS[i]; return null; }
+/* Career Pathway per-business-unit access is stored inside the existing `items`
+   map under a synthetic key ("@career:<country>::<bu>") so no schema change is
+   needed. Resolution, most-specific wins: item override -> BU override ->
+   pillar default. Members without any BU key behave exactly as before. */
+function careerBUKey(item) { return '@career:' + (item.country || CAREER_COUNTRIES[0]) + '::' + (item.bu || ''); }
 function accessLevelFor(u, item) {
   if (!u) return 'none';
   if (u.admin) return 'edit';
   if (item.pillar === 'guide') return 'view';   /* Guide pillar is readable by every member */
   var lvl = (u.pillars && u.pillars[item.pillar]) || 'none';
-  if (u.items && u.items[item.process_id]) lvl = u.items[item.process_id];  /* exception wins */
+  if (item.pillar === CAREER_KEY && u.items && u.items[careerBUKey(item)]) lvl = u.items[careerBUKey(item)];  /* per-BU override */
+  if (u.items && u.items[item.process_id]) lvl = u.items[item.process_id];  /* single-item exception wins */
   return lvl;
 }
 function accessLevel(item) { return accessLevelFor(currentUser, item); }
@@ -4631,7 +4655,7 @@ function wireEditorChrome() {
 }
 
 /* ============================ admin: manage access ============================ */
-var adminSel = null;
+var adminSel = null, admExpanded = {}, admQuery = '';
 function drawAdmin() {
   if (!isAdmin()) { goHome(); return; }
   var S = $('adminScreen');
@@ -4642,20 +4666,28 @@ function drawAdmin() {
 
   var left = '<div class="adm-side"><div class="adm-side__head"><h2 class="mk-h2" style="margin:0">Members</h2>' +
     '<button class="mk-btn mk-btn--primary" id="admAdd" style="padding:5px 10px;font-size:11.5px">+ Add</button></div>' +
+    '<input class="adm-search" id="admSearch" placeholder="Search people…" value="' + esc(admQuery) + '">' +
     '<div class="adm-members">' + MEMBERS.map(function (u) {
-      return '<button class="adm-member' + (u.email === adminSel ? ' adm-member--on' : '') + '" data-mem="' + esc(u.email) + '">' +
+      return '<button class="adm-member' + (u.email === adminSel ? ' adm-member--on' : '') + '" data-mem="' + esc(u.email) + '" data-search="' + esc(((u.name || '') + ' ' + u.email + ' ' + (u.role || '')).toLowerCase()) + '">' +
         '<span class="pic-avatar">' + esc((u.name[0] || '?').toUpperCase()) + '</span>' +
         '<span class="adm-member__col"><b>' + esc(u.name) + '</b><em>' + esc(u.email) + '</em></span>' +
         '<span class="adm-badge' + (u.admin ? ' adm-badge--admin' : '') + '">' + esc(u.role || 'Custom') + '</span></button>';
     }).join('') + '</div></div>';
 
-  function levelSelect(val, attr) {
-    return '<select data-acc="' + attr + '">' + [['none', 'No access'], ['view', 'View'], ['edit', 'Edit']].map(function (o) {
-      return '<option value="' + o[0] + '"' + (((val || 'none') === o[0]) ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>';
+  /* Segmented None/View/Edit control. withDefault adds a "Default" state (no
+     override — follow the pillar) used by per-document and per-BU rows. */
+  function accSeg(attr, cur, withDefault) {
+    var opts = withDefault ? [['', 'Default'], ['none', 'None'], ['view', 'View'], ['edit', 'Edit']]
+                           : [['none', 'None'], ['view', 'View'], ['edit', 'Edit']];
+    cur = cur == null ? (withDefault ? '' : 'none') : cur;
+    return '<span class="acc-seg" data-acc="' + esc(attr) + '">' + opts.map(function (o) {
+      var on = cur === o[0];
+      return '<button type="button" data-v="' + o[0] + '" class="acc-seg__b' + (on ? ' is-on' + (o[0] === 'view' ? ' acc--view' : (o[0] === 'edit' ? ' acc--edit' : '')) : '') + '">' + o[1] + '</button>';
+    }).join('') + '</span>';
   }
-  var itemById = {}; DOC.processes.forEach(function (p) { itemById[p.process_id] = p; });
 
   var detail = '<div class="adm-detail"><div class="adm-detail__head">' +
+    '<span class="pic-avatar">' + esc((m.name[0] || '?').toUpperCase()) + '</span>' +
     '<div style="flex:1"><input id="admName" class="adm-name" value="' + esc(m.name) + '"><div class="adm-detail__email">' + esc(m.email) + '</div></div>' +
     (m.email === currentUser.email ? '' : '<button class="mk-btn adm-remove" id="admRemove">Remove</button>') + '</div>' +
     '<div class="adm-row adm-row--role"><span><b>Role</b> — sets a suggested access</span><select id="admRole">' +
@@ -4664,25 +4696,27 @@ function drawAdmin() {
   if (m.admin) {
     detail += '<p class="adm-hint"><b>' + esc(m.role) + '</b> — full view &amp; edit on everything, and can manage access. Change the role to set access per pillar.</p>';
   } else {
-    detail += '<div class="adm-sub">Access per pillar</div>';
-    PILLARS.forEach(function (pl) {
-      detail += '<div class="adm-row"><span class="pillar-tag pillar-tag--nodot pillar-' + pl.key + '">' + pl.label + '</span>' +
-        levelSelect(m.pillars && m.pillars[pl.key], 'pillar:' + pl.key) + '</div>';
+    detail += '<div class="adm-sub">Access per pillar <span>— “View” sees published, “Edit” can change &amp; publish. Expand to override single documents.</span></div>';
+    /* normal pillars: pillar-level segmented control + optional per-document overrides */
+    PILLARS.filter(function (pl) { return pl.key !== 'guide' && pl.key !== CAREER_KEY; }).forEach(function (pl) {
+      detail += '<div class="acc-row"><span class="acc-name">' + esc(pl.label) + '</span>' + accSeg('pillar:' + pl.key, m.pillars && m.pillars[pl.key]) + '</div>';
+      var items = (itemsByPillar[pl.key] || []).filter(function (p) { return !p.deleted; });
+      if (items.length) {
+        detail += '<button type="button" class="acc-exp" data-exp="' + pl.key + '">' + (admExpanded[pl.key] ? '▾' : '＋') + ' Override single documents in ' + esc(pl.label) + '…</button>';
+        if (admExpanded[pl.key]) detail += '<div class="acc-subrows">' + items.map(function (it) {
+          return '<div class="acc-subrow"><span class="acc-subname">' + esc(it.title) + '</span>' + accSeg('item:' + it.process_id, m.items && m.items[it.process_id], true) + '</div>'; }).join('') + '</div>';
+      }
     });
-    var exKeys = Object.keys(m.items || {}).filter(function (k) { return itemById[k]; });
-    detail += '<div class="adm-sub" style="margin-top:16px">Exceptions <span>— one process/alignment that differs from its pillar</span></div>';
-    if (exKeys.length) detail += exKeys.map(function (k) { var it = itemById[k];
-      return '<div class="adm-row adm-exc"><span class="adm-item__name">' + esc(it.title) +
-        ' <em class="kind-tag kind-tag--' + kindOf(it) + '">' + KIND_LABEL[kindOf(it)] + '</em> <em class="adm-pill">' + esc(PILLAR_LABEL[it.pillar]) + '</em></span>' +
-        levelSelect(m.items[k], 'item:' + k) + '<button class="adm-x" data-exdel="' + esc(k) + '" aria-label="Remove exception">×</button></div>'; }).join('');
-    else detail += '<p class="adm-hint" style="margin:6px 0">No exceptions yet.</p>';
-    var avail = DOC.processes.filter(function (p) { return !(m.items && m.items[p.process_id] != null); });
-    var byPil = {}; avail.forEach(function (p) { (byPil[p.pillar] = byPil[p.pillar] || []).push(p); });
-    detail += '<div class="adm-addexc"><select id="excItem"><option value="">+ Add an exception for…</option>' +
-      PILLARS.map(function (pl) { var l = byPil[pl.key] || []; if (!l.length) return '';
-        return '<optgroup label="' + esc(pl.label) + '">' + l.map(function (p) { return '<option value="' + esc(p.process_id) + '">' + esc(p.title) + '</option>'; }).join('') + '</optgroup>'; }).join('') +
-      '</select>' + levelSelect('view', 'exlvl') + '<button class="mk-btn" id="excAdd">Add</button></div>';
-    detail += '<p class="adm-hint">Tip: set each pillar’s level, then add an exception only for an item that should be different. Editing a level here switches the role to <b>Custom</b>.</p>';
+    /* Career Pathway: pillar-level default + per-business-unit overrides */
+    detail += '<div class="acc-row"><span class="acc-name">' + esc(PILLAR_LABEL[CAREER_KEY]) + '<small class="acc-sm">default for all business units</small></span>' + accSeg('pillar:' + CAREER_KEY, m.pillars && m.pillars[CAREER_KEY]) + '</div>' +
+      '<button type="button" class="acc-exp" data-exp="career">' + (admExpanded.career ? '▾' : '＋') + ' Set access per business unit…</button>';
+    if (admExpanded.career) detail += '<div class="acc-subrows">' + CAREER_COUNTRIES.map(function (c) {
+      var flag = c === 'Vietnam' ? '🇻🇳' : (c === 'Cambodia' ? '🇰🇭' : '🏳');
+      return CAREER_BUS.map(function (bu) { var key = c + '::' + bu;
+        return '<div class="acc-subrow"><span class="acc-subname">' + flag + ' ' + esc(c) + ' · ' + esc(bu) + '</span>' + accSeg('bu:' + key, m.items && m.items['@career:' + key], true) + '</div>'; }).join('');
+    }).join('') + '</div>';
+    detail += '<div class="acc-guide">User guide — everyone with an account can view it.</div>';
+    detail += '<p class="adm-hint">Tip: set each pillar’s level, then override a single document or a business unit only where it should differ. Any change here switches the role to <b>Custom</b>.</p>';
   }
   detail += '</div>';
 
@@ -4715,19 +4749,19 @@ function drawAdmin() {
     MEMBERS = MEMBERS.filter(function (u) { return u.email !== m.email; }); adminSel = MEMBERS[0] && MEMBERS[0].email; persistMembers(); wireRoleSwitch(); drawAdmin(); }, { danger: true, okLabel: 'Remove' }); };
   var nmEl = $('admName'); if (nmEl) nmEl.onchange = function () { m.name = nmEl.value.trim() || m.name; persistMembers(); wireRoleSwitch(); drawAdmin(); };
   var roleEl = $('admRole'); if (roleEl) roleEl.onchange = function () { applyRolePreset(m, roleEl.value); persistMembers(); wireRoleSwitch(); drawAdmin(); };
-  S.querySelectorAll('[data-acc]').forEach(function (sel2) { sel2.onchange = function () {
-    var a = sel2.getAttribute('data-acc'), v = sel2.value;
-    if (a === 'exlvl') return;
+  S.querySelectorAll('.acc-seg__b').forEach(function (btn) { btn.onclick = function () {
+    var a = btn.parentNode.getAttribute('data-acc'), v = btn.getAttribute('data-v');
     if (a.indexOf('pillar:') === 0) { m.pillars = m.pillars || {}; m.pillars[a.slice(7)] = v; m.role = 'Custom'; }
-    else if (a.indexOf('item:') === 0) { m.items = m.items || {}; m.items[a.slice(5)] = v; m.role = 'Custom'; }
+    else if (a.indexOf('item:') === 0) { m.items = m.items || {}; var ik = a.slice(5); if (v === '') delete m.items[ik]; else m.items[ik] = v; m.role = 'Custom'; }
+    else if (a.indexOf('bu:') === 0) { m.items = m.items || {}; var bk = '@career:' + a.slice(3); if (v === '') delete m.items[bk]; else m.items[bk] = v; m.role = 'Custom'; }
     persistMembers(); drawAdmin();
   }; });
-  var exAdd = $('excAdd'); if (exAdd) exAdd.onclick = function () {
-    var it = $('excItem').value, lvSel = S.querySelector('[data-acc="exlvl"]'), lv = lvSel ? lvSel.value : 'view';
-    if (!it) { Modal.alert('Pick an item', 'Choose a process or alignment to add an exception for.'); return; }
-    m.items = m.items || {}; m.items[it] = lv; m.role = 'Custom'; persistMembers(); drawAdmin();
+  S.querySelectorAll('[data-exp]').forEach(function (x) { x.onclick = function () {
+    var k = x.getAttribute('data-exp'); admExpanded[k] = !admExpanded[k]; drawAdmin(); }; });
+  var srch = $('admSearch'); if (srch) srch.oninput = function () {
+    admQuery = srch.value; var q = admQuery.trim().toLowerCase();
+    S.querySelectorAll('.adm-member').forEach(function (b) { b.style.display = (!q || (b.getAttribute('data-search') || '').indexOf(q) >= 0) ? '' : 'none'; });
   };
-  S.querySelectorAll('[data-exdel]').forEach(function (b) { b.onclick = function () { delete m.items[b.getAttribute('data-exdel')]; persistMembers(); drawAdmin(); }; });
 }
 
 /* ------------------------------ chrome: role, brand ------------------------------ */
