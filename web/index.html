@@ -1047,6 +1047,12 @@ textarea{resize:vertical;min-height:60px;line-height:1.5}
 .acc-subrow{display:flex;align-items:center;gap:10px;padding:6px 2px;font-size:13px}
 .acc-subname{flex:1;color:var(--ink-soft);min-width:0}
 .acc-guide{font-size:12px;color:var(--ink-faint);padding:11px 0;border-top:1px solid var(--hairline)}
+/* reviewer "changes requested" callout shown on the document */
+.rev-banner{border:1px solid #E7C99A;border-left:4px solid #C8862B;background:#FBF3E4;border-radius:10px;padding:12px 16px;margin:0 0 18px}
+.rev-banner__hd{font-family:var(--font-body);font-weight:700;font-size:13px;color:#8A5A12;margin-bottom:4px}
+.rev-banner__body{font-size:13.5px;color:var(--ink);line-height:1.5}
+.rev-banner__body p{margin:4px 0}.rev-banner__body ul,.rev-banner__body ol{margin:4px 0;padding-left:22px}
+.rev-banner__body a{color:var(--indigo-2,#1B57A6);text-decoration:underline}
 
 /* ------------------------------ 3-col editor ------------------------------ */
 .mk-cols{display:grid;grid-template-columns:minmax(0,1fr) 300px 380px;height:calc(100vh - 112px);min-height:600px}
@@ -2529,10 +2535,10 @@ function doSaveDraft() {
 }
 function doSendForApproval() {
   if (kindOf(P) === 'process') { var e = validate(); if (e.length) { Modal.alert('Fix these before sending', e.map(esc).join('<br>')); return; } }
-  var pr = P.review; P.review = 'pending'; P.updatedAt = todayISO(); P.updatedBy = currentUser.email;
+  var pr = P.review, prc = P.reviewComment; P.review = 'pending'; P.updatedAt = todayISO(); P.updatedBy = currentUser.email; delete P.reviewComment;
   $('pub').disabled = true; $('pub').textContent = 'Sending…';
   persist('Sent for approval: ' + P.title, function (ok, r) {
-    if (!ok) { P.review = pr; updatePublishButton(); Modal.alert('Could not send', errText(r)); return; }
+    if (!ok) { P.review = pr; P.reviewComment = prc; updatePublishButton(); Modal.alert('Could not send', errText(r)); return; }
     dirty = false; clearAutosave(P.process_id); pushHistory(P, 'Sent for approval'); addNotif('pending', P); notifyServer('Submitted for approval', P); sendApprovalEmail();
     Modal.alert('Sent for approval', 'Sent to <b>' + esc(displayName(P.reviewer)) + '</b> for approval. They get an email (CC lnd.edl@pizza4ps.com) and can Approve — Approve &amp; publish — or Request changes.');
     backFromEditor();
@@ -2544,7 +2550,7 @@ function doPublish(direct) {
   var msg = direct ? ('This publishes "' + esc(P.title) + '" ' + (was ? 'update ' : '') + 'live now, without review.')
                    : ('This makes the approved ' + (was ? 'update ' : 'version ') + 'live now.');
   Modal.confirm(verb + '?', msg, function () {
-    $('pub').disabled = true; P.updatedAt = todayISO(); P.updatedBy = currentUser.email; P.review = 'none'; P._publish = true;
+    $('pub').disabled = true; P.updatedAt = todayISO(); P.updatedBy = currentUser.email; P.review = 'none'; P._publish = true; delete P.reviewComment;
     persist((was ? 'Published update: ' : 'Published: ') + P.title, function (ok, r) {
       if (!ok) { delete P._publish; updatePublishButton(); Modal.alert('Publish failed', errText(r)); return; }
       dirty = false; clearAutosave(P.process_id); pushHistory(P, was ? 'Published update' : 'Published');
@@ -3551,7 +3557,7 @@ function heroFor(p, flowLabelHtml) {
       p.updatedBy ? 'Updated by ' + esc(displayName(p.updatedBy)) + (p.updatedAt ? ' on ' + fmtDate(p.updatedAt) : '') : '',
       p.reviewedBy ? 'Reviewed by ' + esc(displayName(p.reviewedBy)) + (p.reviewedAt ? ' on ' + fmtDate(p.reviewedAt) : '') : ''
     ].filter(Boolean).map(function (x) { return '<span>' + x + '</span>'; }).join('') +
-      '</p></section>';
+      '</p></section>' + reviewBanner(p);
 }
 function wireItemHeader(p) {
   var e = $('editProcBtn'); if (e) e.onclick = function () { openEditor(p.process_id); };
@@ -3559,34 +3565,57 @@ function wireItemHeader(p) {
   var mv = $('moveProcBtn'); if (mv) mv.onclick = function () { moveItem(p); };
   var hb = $('histBtn'); if (hb) hb.onclick = function () { openHistory(p); };
   var a = $('approveBtn'); if (a) a.onclick = function () {
-    var prev = p.review, prb = p.reviewedBy, pra = p.reviewedAt;
-    p.review = 'approved'; p.reviewedBy = currentUser.email; p.reviewedAt = todayISO(); a.disabled = true;
+    var prev = p.review, prb = p.reviewedBy, pra = p.reviewedAt, prc = p.reviewComment;
+    p.review = 'approved'; p.reviewedBy = currentUser.email; p.reviewedAt = todayISO(); delete p.reviewComment; a.disabled = true;
     persist('Approved: ' + p.title, function (ok, r) {
       a.disabled = false;
-      if (!ok) { p.review = prev; p.reviewedBy = prb; p.reviewedAt = pra; Modal.alert('Save failed', errText(r)); return; }
+      if (!ok) { p.review = prev; p.reviewedBy = prb; p.reviewedAt = pra; p.reviewComment = prc; Modal.alert('Save failed', errText(r)); return; }
       addNotif('approved', p); notifyServer('Approved', p);
       Modal.alert('Approved', 'You approved "' + esc(p.title) + '". ' + esc(p.pic || 'The PIC') + ' (or you) can now publish it.'); render(); }); };
   var ap = $('approvePubBtn'); if (ap) ap.onclick = function () {
     Modal.confirm('Approve & publish?', 'This makes "' + esc(p.title) + '" live right now.', function () {
-      var pr = p.review, pu = p.updatedAt, pb = p.updatedBy;
-      p.review = 'none'; p.updatedAt = todayISO(); p.updatedBy = currentUser.email; p.reviewedBy = currentUser.email; p.reviewedAt = todayISO(); p._publish = true;
+      var pr = p.review, pu = p.updatedAt, pb = p.updatedBy, prc = p.reviewComment;
+      p.review = 'none'; p.updatedAt = todayISO(); p.updatedBy = currentUser.email; p.reviewedBy = currentUser.email; p.reviewedAt = todayISO(); p._publish = true; delete p.reviewComment;
       ap.disabled = true;
       persist('Approved & published: ' + p.title, function (ok, r) {
         ap.disabled = false;
-        if (!ok) { delete p._publish; p.review = pr; p.updatedAt = pu; p.updatedBy = pb; Modal.alert('Publish failed', errText(r)); return; }
+        if (!ok) { delete p._publish; p.review = pr; p.updatedAt = pu; p.updatedBy = pb; p.reviewComment = prc; Modal.alert('Publish failed', errText(r)); return; }
         pushHistory(p, 'Approved & published'); addNotif('published', p); notifyServer('Approved & published', p); notifyPublish(p);
         Modal.alert('Published', '"' + esc(p.title) + '" is now live.'); render(); }); }, { okLabel: 'Approve & publish' }); };
   var rq = $('reqChangesBtn'); if (rq) rq.onclick = function () {
-    Modal.prompt('Request changes', 'Leave a comment for the author (what needs changing):', '', function (cmt) {
-      if (cmt === null) return; cmt = (cmt || '').trim();
-      if (!cmt) { Modal.alert('Add a comment', 'Please write what needs changing so the author knows.'); return; }
-      var pr = p.review; p.review = 'none'; p.updatedAt = todayISO(); p.updatedBy = currentUser.email; p.reviewedBy = currentUser.email; p.reviewedAt = todayISO();
+    askReviewComment(function (html, text) {
+      if (!text) { Modal.alert('Add a comment', 'Please write what needs changing so the author knows.'); return; }
+      var pr = p.review, prc = p.reviewComment; p.review = 'none'; p.updatedAt = todayISO(); p.updatedBy = currentUser.email; p.reviewedBy = currentUser.email; p.reviewedAt = todayISO();
+      p.reviewComment = { by: currentUser.email, at: todayISO(), html: html };
       rq.disabled = true;
-      persist('Changes requested by ' + nameFromEmail(currentUser.email) + ': ' + cmt, function (ok, r) {
+      persist('Changes requested by ' + nameFromEmail(currentUser.email) + ': ' + text, function (ok, r) {
         rq.disabled = false;
-        if (!ok) { p.review = pr; Modal.alert('Could not send', errText(r)); return; }
+        if (!ok) { p.review = pr; p.reviewComment = prc; Modal.alert('Could not send', errText(r)); return; }
         addNotif('changes', p); notifyServer('Changes requested', p);
-        Modal.alert('Sent back to the author', 'Your comment was saved to the history and the author was notified. It returns to Draft for them to edit.'); render(); }); }); };
+        Modal.alert('Sent back to the author', 'Your comment now shows as a banner on the document and is saved to the history; the author was notified. It returns to Draft for them to edit.'); render(); }); }); };
+}
+/* Reviewer "Request changes" comment — a rich-text box (bold/italic/lists/link),
+   the same editor as Full description. Calls cb(html, plainText). */
+function askReviewComment(cb) {
+  var body = '<p>Leave a comment for the author — what needs changing. You can use <b>bold</b>, <i>italic</i> and lists.</p>' +
+    '<div class="rt-toolbar" id="rcTb">' + rtToolbarHTML() + '</div>' +
+    '<div class="rt-edit" id="rcEd" contenteditable="true"></div>';
+  var html = '';
+  var h = Modal.custom('Request changes', body, [
+    { label: 'Cancel', onClick: function () { Modal.close(); } },
+    { label: 'Send back', primary: true, onClick: function () { Modal.close(); cb(html, htmlToText(html).trim()); } }
+  ]);
+  var ed = h.querySelector('#rcEd'), tb = h.querySelector('#rcTb');
+  attachRichEditor(ed, tb, '', function (v) { html = v; });
+  setTimeout(function () { ed.focus(); }, 30);
+}
+/* A dismissible callout shown on the document when a reviewer asked for changes.
+   The comment lives in the content JSON (p.reviewComment), so it survives without
+   a schema change and is cleared once the author re-sends or it is approved. */
+function reviewBanner(p) {
+  var rc = p.reviewComment; if (!rc || !rc.html) return '';
+  return '<div class="rev-banner"><div class="rev-banner__hd">↩ Changes requested by <b>' + esc(displayName(rc.by)) + '</b>' +
+    (rc.at ? ' on ' + fmtDate(rc.at) : '') + '</div><div class="rev-banner__body">' + taskHtml(rc.html) + '</div></div>';
 }
 /* ================= BU variant diff / compare (Đợt 2) ================= */
 /* Content signature for a step — two steps with the same id are "changed"
