@@ -257,8 +257,6 @@ img{ max-width: 100%; display:block; }
   font-size: 11px;
   color: var(--ink-faint);
 }
-/* hint + zoom pinned to the right of the legend row, directly above the flow */
-.dg-legend__tools{margin-left:auto;display:inline-flex;align-items:center;gap:10px}
 
 .dg-wrap{
   display:flex;
@@ -723,6 +721,11 @@ img{ max-width: 100%; display:block; }
   font-variant-numeric:tabular-nums;z-index:4;box-shadow:var(--shadow-sm)}
 .dg-hold{position:relative}
 .dg-zoomctl--float{position:absolute;top:8px;right:8px;z-index:6;background:var(--paper-raised)}
+/* floating toolbar pinned to the flowchart's top-right corner (zoom + optional hint) */
+.dg-tools{position:absolute;top:10px;right:12px;z-index:8;display:inline-flex;align-items:center;gap:8px;pointer-events:none}
+.dg-tools .dg-zoomctl{pointer-events:auto;background:var(--paper-raised);box-shadow:0 2px 6px rgba(36,47,82,.16)}
+.dg-tools__hint{font-family:var(--font-body);font-weight:500;font-size:11px;color:var(--ink-faint);
+  background:var(--paper-raised);padding:4px 10px;border-radius:999px;white-space:nowrap;box-shadow:0 2px 6px rgba(36,47,82,.10)}
 .dg-hint--bar{margin:0 10px 0 0;white-space:nowrap;color:var(--ink-faint)}
 .dg-scroll--grab{cursor:grab}
 .dg-scroll--grabbing{cursor:grabbing;user-select:none}
@@ -1181,7 +1184,7 @@ textarea{resize:vertical;min-height:60px;line-height:1.5}
         <div id="banner"></div>
         <div class="proc-diagram__label">
           <span style="display:flex;align-items:center;gap:10px"><h2>Preview</h2><span id="procTotals" style="display:flex;gap:6px"></span></span>
-          <span class="dg-zoomctl" id="zoomCtl"></span></div>
+          </div>
         <div id="laneOrderBar" class="lo-bar" hidden></div>
         <div id="diagram"></div>
         <div class="dg-legend">
@@ -1926,10 +1929,11 @@ var MARK_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABDgAAAM7CAYAA
     }
     scroll.addEventListener('scroll', syncFreeze);
 
-    var fitScale = 1, curScale = 1;
+    var fitScale = 1, curScale = 1, zoomPctEl = null;
     function computeFit() { return Math.min(1, Math.max(0.15, wrap.clientWidth / g.canvas.width)); }
     function apply(scale) {
       curScale = scale;
+      if (zoomPctEl) zoomPctEl.textContent = Math.round(scale * 100) + '%';
       zoom.style.transform = 'scale(' + scale + ')';
       zoom.style.transformOrigin = 'top left';
       zoom.style.height = (g.canvas.height * scale) + 'px';
@@ -1964,6 +1968,21 @@ var MARK_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABDgAAAM7CAYAA
       }
       syncFreeze();
     }
+    /* Floating zoom control (+ optional hint) pinned to the flowchart's own
+       top-right corner — on every diagram, since every diagram renders here. */
+    var tools = document.createElement('div');
+    tools.className = 'dg-tools';
+    if (opts.hint) { var hintEl = document.createElement('span'); hintEl.className = 'dg-tools__hint'; hintEl.textContent = opts.hint; tools.appendChild(hintEl); }
+    var zc = document.createElement('div'); zc.className = 'dg-zoomctl';
+    zc.innerHTML = '<button type="button" class="dg-zoomctl__btn" data-z="out" aria-label="Zoom out">−</button>' +
+      '<span class="dg-zoomctl__pct" title="Click to fit">100%</span>' +
+      '<button type="button" class="dg-zoomctl__btn" data-z="in" aria-label="Zoom in">+</button>';
+    tools.appendChild(zc); wrap.appendChild(tools);
+    zoomPctEl = zc.querySelector('.dg-zoomctl__pct');
+    zc.querySelector('[data-z="out"]').onclick = function () { apply(Math.max(0.15, curScale - 0.1)); };
+    zc.querySelector('[data-z="in"]').onclick = function () { apply(Math.min(1.6, curScale + 0.1)); };
+    zoomPctEl.onclick = function () { fitScale = computeFit(); apply(fitScale); };
+
     fitScale = computeFit();
     apply(opts.zoom || fitScale);
 
@@ -2815,17 +2834,6 @@ document.addEventListener('click', function (ev) {
   if (ev.target.closest && ev.target.closest('#lightbox')) { $('lightbox').hidden = true; }
 });
 
-function mountZoom(container, handle) {
-  container.innerHTML =
-    '<button type="button" class="dg-zoomctl__btn" data-z="out" aria-label="Zoom out">−</button>' +
-    '<span class="dg-zoomctl__pct" title="Click to fit">' + Math.round(handle.scale() * 100) + '%</span>' +
-    '<button type="button" class="dg-zoomctl__btn" data-z="in" aria-label="Zoom in">+</button>';
-  var pct = container.querySelector('.dg-zoomctl__pct');
-  function refresh() { pct.textContent = Math.round(handle.scale() * 100) + '%'; }
-  container.querySelector('[data-z="out"]').onclick = function () { handle.setZoom(handle.scale() - 0.1); refresh(); };
-  container.querySelector('[data-z="in"]').onclick = function () { handle.setZoom(handle.scale() + 0.1); refresh(); };
-  pct.onclick = function () { handle.fit(); refresh(); };
-}
 function selectStep(id) {
   sel = id;
   document.querySelectorAll('#list .mk-step').forEach(function (b) {
@@ -3810,20 +3818,13 @@ function drawProcess(p) {
   renderProcDiagram(p);
 }
 
-/* Hint + zoom control, right-aligned in the legend row so it sits directly
-   above the flowchart (near it) rather than up in the section header. */
-function legendToolsHTML() {
-  return '<span class="dg-legend__tools"><span class="dg-legend__hint dg-hint--bar">Click a step to see full details, drag to move</span>' +
-    '<span class="dg-zoomctl" id="siteZoomCtl"></span></span>';
-}
 function renderProcDiagram(p) {
   var flow = flowOf(p, viewVariant);
   $('procBody').innerHTML =
     '<div class="dg-legend">' +
     '<span class="dg-legend__item"><i class="dg-legend__swatch" style="background:#02499D"></i>Action step</span>' +
     '<span class="dg-legend__item"><i class="dg-legend__swatch" style="background:#BF6B1F"></i>Review / decision</span>' +
-    '<span class="dg-legend__item"><i class="dg-legend__swatch" style="background:#2A4728"></i>Start / End</span>' +
-    legendToolsHTML() + '</div>' +
+    '<span class="dg-legend__item"><i class="dg-legend__swatch" style="background:#2A4728"></i>Start / End</span></div>' +
     '<div class="proc-layout"><div id="sdiag"></div><div id="sdetail"></div></div>';
   var steps = flow.steps || [];
   var first = steps.filter(function (s) { return s.type !== 'start' && s.type !== 'end'; })[0];
@@ -3833,9 +3834,8 @@ function renderProcDiagram(p) {
     var z = (keepZoom && siteHandle) ? siteHandle.scale() : null;
     try {
       var g = AutoLayout.layout({ title: p.title, subtitle: p.subtitle, steps: flow.steps, lanes: flow.lanes || [] });
-      siteHandle = DiagramRender.render($('sdiag'), g, { selected: sel, onPick: pick, zoom: z,
+      siteHandle = DiagramRender.render($('sdiag'), g, { selected: sel, onPick: pick, zoom: z, hint: 'Click a step to see full details, drag to move',
         onToggle: function (id) { var st = steps.filter(function (s) { return s.id === id; })[0]; if (st) { st._open = !st._open; renderDiag(true); } } });
-      mountZoom($('siteZoomCtl'), siteHandle);
     } catch (err) { $('sdiag').innerHTML = '<div class="mk-empty">Diagram unavailable.</div>'; }
   }
   function pick(id) { sel = id; if (siteHandle) siteHandle.select(id);
@@ -3855,8 +3855,7 @@ function renderProcCompare(p) {
     '<span class="dg-legend__item"><i class="dg-legend__swatch" style="background:#02499D"></i>Same as Base</span>' +
     '<span class="dg-legend__item"><i class="dg-legend__swatch" style="background:#2E9B4F"></i>Added in ' + esc(variant.name) + '</span>' +
     '<span class="dg-legend__item"><i class="dg-legend__swatch" style="background:#E0912F"></i>Changed</span>' +
-    '<span class="dg-legend__item"><i class="dg-legend__swatch" style="background:#C0392B"></i>Removed (not used here)</span>' +
-    legendToolsHTML() + '</div>' +
+    '<span class="dg-legend__item"><i class="dg-legend__swatch" style="background:#C0392B"></i>Removed (not used here)</span></div>' +
     '<div class="proc-layout"><div id="sdiag"></div><div id="sdetail"></div></div>';
   $('sdetail').innerHTML = diffListHTML(p, variant, diff);
   function highlight(id) {
@@ -3864,9 +3863,8 @@ function renderProcCompare(p) {
   }
   try {
     var g = AutoLayout.layout({ title: p.title, subtitle: p.subtitle, steps: cf.steps, lanes: cf.lanes });
-    siteHandle = DiagramRender.render($('sdiag'), g, { zoom: null,
+    siteHandle = DiagramRender.render($('sdiag'), g, { zoom: null, hint: 'Click a step to see full details, drag to move',
       onPick: function (id) { if (siteHandle) siteHandle.select(id); highlight(id); } });
-    mountZoom($('siteZoomCtl'), siteHandle);
   } catch (err) { $('sdiag').innerHTML = '<div class="mk-empty">Compare unavailable.</div>'; }
 }
 
@@ -4184,8 +4182,8 @@ function drawDiagram() {
     (t.hasPIC ? '<span class="proc-meta__chip">No. PIC ' + t.peakPIC + '</span>' : '') +
     (t.hasDays ? '<span class="proc-meta__chip">' + t.totalDays + ' total wd</span>' : '') +
     (t.missingDays ? '<span class="proc-meta__chip proc-meta__chip--warn" title="These steps have no working days yet, so the totals are a minimum.">⚠ ' + t.missingDays + '/' + t.actSteps + ' steps missing wd</span>' : '');
-  try { var g = AutoLayout.layout({ title: P.title, subtitle: P.subtitle, steps: EF.steps, lanes: EF.lanes }); dgHandle = DiagramRender.render($('diagram'), g, { selected: sel, onPick: selectStep,
-    onToggle: function (id) { var st = EF.steps.filter(function (x) { return x.id === id; })[0]; if (st) { st._open = !st._open; drawDiagram(); } } }); mountZoom($('zoomCtl'), dgHandle); }
+  try { var g = AutoLayout.layout({ title: P.title, subtitle: P.subtitle, steps: EF.steps, lanes: EF.lanes }); dgHandle = DiagramRender.render($('diagram'), g, { selected: sel, onPick: selectStep, hint: 'Click a step to edit · drag to move',
+    onToggle: function (id) { var st = EF.steps.filter(function (x) { return x.id === id; })[0]; if (st) { st._open = !st._open; drawDiagram(); } } }); }
   catch (err) { try { console.error('drawDiagram failed:', err); } catch (e) {} $('diagram').innerHTML = '<div class="mk-empty">Cannot draw the diagram yet — fix the problems above.</div>'; }
 }
 function wouldLoseData(s, newType) {
