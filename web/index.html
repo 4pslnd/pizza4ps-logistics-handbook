@@ -1608,9 +1608,18 @@ var MARK_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABDgAAAM7CAYAA
       });
       bk.forEach(function (f) {
         var b = f.b, x1c = a.x + a.w / 2, x2c = b.x + b.w / 2;
+        if (Math.abs(x1c - x2c) < 6) {
+          /* Back-loop within the same column (e.g. a decision's rework step
+             returning to it): a tidy loop up the lane's LEFT gutter and into the
+             target's left edge — not a big detour to the right channel. */
+          var offX = Math.min(a.x, b.x) - 18, syM = a.y + a.h / 2, tyM = b.y + b.h / 2;
+          var path = 'M' + a.x + ',' + syM + ' L' + offX + ',' + syM + ' L' + offX + ',' + tyM + ' L' + b.x + ',' + tyM;
+          conns.push({ from: s.id, to: f.e.to, path: path, label: f.e.label, labelPos: { x: offX - 6, y: (syM + tyM) / 2 - 8 }, back: true });
+          return;
+        }
         var channelX = rightEdge + BACK_GAP + (backSeen++) * BACK_GAP;
         var gy1 = a.y - ROW_GAP * 0.5, gy2 = b.y + b.h + ROW_GAP * 0.5;
-        /* Back / upward arrow: leave the TOP into the gap above, along to the
+        /* Cross-lane back arrow: leave the TOP into the gap above, along to the
            right channel, up to the gap below the target, then into its bottom —
            never crossing a box in between. */
         var path = 'M' + x1c + ',' + a.y + ' L' + x1c + ',' + gy1 + ' L' + channelX + ',' + gy1 + ' L' + channelX + ',' + gy2 + ' L' + x2c + ',' + gy2 + ' L' + x2c + ',' + (b.y + b.h);
