@@ -621,6 +621,16 @@ img{ max-width: 100%; display:block; }
   font-weight:700;font-size:13.5px;color:var(--ink);text-align:left;cursor:pointer}
 .mm-choice:hover{background:var(--lane-bg)}
 .mm-choice__dot{width:10px;height:10px;border-radius:50%;background:var(--dot);flex:none}
+.mm-choice{align-items:center}
+.mm-tile__ic{width:34px;height:34px;border-radius:9px;background:var(--indigo-2-fill,#E8ECF7);color:var(--indigo-2,#02499D);display:flex;align-items:center;justify-content:center;font-size:18px;flex:none}
+.mm-tile__x{display:flex;flex-direction:column;gap:2px;min-width:0}
+.mm-tile__x b{font-size:14px;font-weight:700}
+.mm-tile__x small{font-weight:400;font-size:12px;color:var(--muted,#5A6072);white-space:normal;line-height:1.4}
+.mm-tile__x .kind-tag{align-self:flex-start;margin:1px 0}
+.mv-field{margin-bottom:12px}
+.mv-field>label{display:block;font-size:12px;font-weight:700;color:var(--muted,#5A6072);margin-bottom:4px}
+.mv-sel{width:100%;padding:8px 10px;border:1px solid var(--hairline-strong,#D2CFC4);border-radius:8px;font-family:var(--font-body);font-size:13.5px;background:var(--paper-raised,#fff);color:var(--ink,#1B2233)}
+.mv-two{display:flex;gap:8px}.mv-two .mv-sel{flex:1;min-width:0}
 
 /* continuous zoom control — replaces the old Fit/100% toggle everywhere */
 .dg-zoomctl{display:inline-flex;align-items:center;gap:2px;border:1px solid var(--hairline-strong);
@@ -2161,6 +2171,48 @@ function restoreItem(p) {
   });
 }
 
+/* Move a document to another pillar (admins only). Changing the pillar is enough
+   for access to follow the new pillar's rules (accessLevelFor resolves by pillar).
+   Moving into Career Pathway also asks for country + business unit. "Move as a
+   Draft" unpublishes it (viewers stop seeing it until it's re-published). */
+function moveItem(p) {
+  if (!isAdmin()) { Modal.alert('Admins only', 'Only admins can move a document to another pillar.'); return; }
+  var targets = PILLARS.filter(function (pl) { return pl.key !== 'guide'; });
+  var pillarSel = '<select id="mvPillar" class="mv-sel">' + targets.map(function (pl) {
+    return '<option value="' + pl.key + '"' + (pl.key === p.pillar ? ' selected' : '') + '>' + esc(pl.label) + (pl.key === p.pillar ? ' (current)' : '') + '</option>'; }).join('') + '</select>';
+  var countrySel = '<select id="mvCountry" class="mv-sel">' + CAREER_COUNTRIES.map(function (c) {
+    return '<option' + ((p.country || CAREER_COUNTRIES[0]) === c ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('') + '</select>';
+  var buSel = '<select id="mvBU" class="mv-sel">' + CAREER_BUS.map(function (b) {
+    return '<option' + ((p.bu || CAREER_BUS[0]) === b ? ' selected' : '') + '>' + esc(b) + '</option>'; }).join('') + '</select>';
+  var live = p.status === 'live';
+  var statusSel = '<select id="mvStatus" class="mv-sel"><option value="keep">Keep its status &amp; history' + (live ? ' (Live stays Live)' : '') + '</option><option value="draft">Move as a Draft' + (live ? ' (unpublish)' : '') + '</option></select>';
+  var body = '<div class="mv-field"><label>Pillar</label>' + pillarSel + '</div>' +
+    '<div class="mv-field" id="mvCareer" hidden><label>Country &amp; business unit</label><div class="mv-two">' + countrySel + buSel + '</div></div>' +
+    '<div class="mv-field"><label>Status</label>' + statusSel + '</div>';
+  var h = Modal.custom('Move “' + esc(p.title) + '”', body, [
+    { label: 'Cancel', onClick: function () { Modal.close(); } },
+    { label: 'Move', primary: true, onClick: doMove } ]);
+  var pillarEl = h.querySelector('#mvPillar'), careerWrap = h.querySelector('#mvCareer');
+  function syncCareer() { careerWrap.hidden = pillarEl.value !== CAREER_KEY; }
+  pillarEl.onchange = syncCareer; syncCareer();
+  function doMove() {
+    var target = pillarEl.value, asDraft = h.querySelector('#mvStatus').value === 'draft';
+    if (target === p.pillar && !asDraft && (target !== CAREER_KEY)) { Modal.close(); return; }
+    var prev = { pillar: p.pillar, country: p.country, bu: p.bu, status: p.status };
+    p.pillar = target;
+    if (target === CAREER_KEY) { p.country = h.querySelector('#mvCountry').value; p.bu = h.querySelector('#mvBU').value; }
+    else { delete p.country; delete p.bu; }
+    if (asDraft) { p.status = 'draft'; p.review = 'none'; p._unpublish = true; }
+    Modal.close();
+    persist('Moved: ' + p.title + ' → ' + (PILLAR_LABEL[target] || target), function (ok, r) {
+      if (!ok) { p.pillar = prev.pillar; p.country = prev.country; p.bu = prev.bu; p.status = prev.status; delete p._unpublish; Modal.alert('Move failed', errText(r)); return; }
+      notifyServer('Moved', p);
+      Modal.alert('Moved', '“' + esc(p.title) + '” is now in ' + esc(PILLAR_LABEL[target] || target) + '.');
+      goProcess(target, p.process_id);
+    });
+  }
+}
+
 /* The logo — top bar renders the 4P's pennant (inlined SVG). Set MARK_DATA_URI
    to a data: URI to use an exact raster export instead. */
 var LOGO_SRC = (typeof MARK_DATA_URI !== 'undefined' && MARK_DATA_URI) ? MARK_DATA_URI : '';
@@ -3320,27 +3372,123 @@ function chooseKind(title, cb) {
   Modal.choice(title, 'A "process" is a step-by-step workflow (flowchart). An "alignment" is a written document — a team agreement or guideline.',
     KINDS.map(function (k) { return { label: KIND_LABEL[k], value: k }; }), function (k) { if (k) cb(k); });
 }
+/* ------------------------- create-new: three ways -------------------------
+   "+ New" opens a chooser: from scratch, from a ready-made template, or by
+   duplicating any document the user can see. All three land in a fresh draft. */
+var TEMPLATES = [
+  { id: 'approval', kind: 'process', label: 'Approval loop',
+    desc: 'Prepare → review (yes/no) → approved, with a revise-and-resubmit branch.',
+    build: function () { return {
+      lanes: ['Requester', 'Reviewer'], owners: ['Requester', 'Reviewer'],
+      steps: [
+        { id: 'start', label: 'Start', lane: 'Requester', type: 'start', next: ['prepare'], task: '', timeline: '', files: [], images: [], note: '' },
+        { id: 'prepare', label: 'Prepare the request', lane: 'Requester', type: 'action', next: ['review'], task: '', timeline: '', files: [], images: [], note: '' },
+        { id: 'review', label: 'Review the request', lane: 'Reviewer', type: 'decision', next: { yes: ['done'], no: ['revise'] }, task: '', timeline: '', files: [], images: [], note: '' },
+        { id: 'revise', label: 'Revise and resubmit', lane: 'Requester', type: 'action', next: ['review'], task: '', timeline: '', files: [], images: [], note: '' },
+        { id: 'done', label: 'Approved', lane: 'Reviewer', type: 'action', next: ['end'], task: '', timeline: '', files: [], images: [], note: '' },
+        { id: 'end', label: 'End', lane: 'Reviewer', type: 'end', next: [], task: '', timeline: '', files: [], images: [], note: '' }
+      ] }; } },
+  { id: 'monthly', kind: 'process', label: 'Monthly cycle',
+    desc: 'Announce → collect → compile → confirm — a recurring monthly workflow.',
+    build: function () { return {
+      lanes: ['EDL', 'Stakeholders'], owners: ['EDL', 'Stakeholders'],
+      steps: [
+        { id: 'start', label: 'Start', lane: 'EDL', type: 'start', next: ['announce'], task: '', timeline: '', files: [], images: [], note: '' },
+        { id: 'announce', label: 'Announce the schedule', lane: 'EDL', type: 'action', next: ['collect'], task: '', timeline: '', files: [], images: [], note: '' },
+        { id: 'collect', label: 'Collect the data', lane: 'Stakeholders', type: 'action', next: ['compile'], task: '', timeline: '', files: [], images: [], note: '' },
+        { id: 'compile', label: 'Compile the report', lane: 'EDL', type: 'action', next: ['confirm'], task: '', timeline: '', files: [], images: [], note: '' },
+        { id: 'confirm', label: 'Confirm the results', lane: 'Stakeholders', type: 'action', next: ['end'], task: '', timeline: '', files: [], images: [], note: '' },
+        { id: 'end', label: 'End', lane: 'EDL', type: 'end', next: [], task: '', timeline: '', files: [], images: [], note: '' }
+      ] }; } },
+  { id: 'guideline', kind: 'alignment', label: 'Team alignment',
+    desc: 'A written guideline with Overview, Scope, Responsibilities and Notes.',
+    build: function () { return { body:
+      '<h2>Overview</h2><p>What this alignment is about.</p>' +
+      '<h2>Scope</h2><p>Who and what it covers.</p>' +
+      '<h2>Responsibilities</h2><ul><li>Role — responsibility</li></ul>' +
+      '<h2>Notes</h2><p>Anything else the team should know.</p>' }; } }
+];
+
+function uniqueId(title) {
+  var id = slug(title) || 'doc', taken = {}, i = 2, base = id;
+  DOC.processes.forEach(function (p) { taken[p.process_id] = 1; });
+  while (taken[id]) id = base + '_' + (i++);
+  return id;
+}
+function blankSeed(kind) {
+  if (kind === 'alignment') return { body: '<h2>Overview</h2><p>Write the alignment / guideline here.</p>' };
+  return {
+    lanes: ['TPM', 'Intern', 'EDL', 'L&D Head', 'Stakeholders'],
+    owners: ['TPM', 'Intern', 'EDL', 'L&D Head', 'Stakeholders'],
+    steps: [
+      { id: 'start', label: 'Start', lane: 'Intern', type: 'start', next: ['end'], task: '', timeline: '', files: [], images: [], note: '' },
+      { id: 'end', label: 'End', lane: 'Intern', type: 'end', next: [], task: '', timeline: '', files: [], images: [], note: '' } ]
+  };
+}
+/* Copy just the flow / written content of a source doc — never its identity,
+   status, review state or audit fields. */
+function contentDup(p) {
+  var out = {};
+  ['subtitle', 'lanes', 'owners', 'steps', 'body', 'variants'].forEach(function (k) { if (p[k] != null) out[k] = p[k]; });
+  return out;
+}
+/* Assemble a fresh draft from a seed (deep-copied so nothing is shared) and open it. */
+function makeNewItem(pillarKey, title, kind, seed) {
+  seed = seed ? JSON.parse(JSON.stringify(seed)) : {};
+  var id = uniqueId(title);
+  var item = { process_id: id, title: title.trim(), subtitle: '', status: 'draft', pillar: pillarKey, kind: kind,
+    pic: currentUser.email, updatedAt: todayISO(), updatedBy: currentUser.email, reviewer: '', review: 'none', createdBy: currentUser.email };
+  if (pillarKey === CAREER_KEY) { item.country = careerCountry || CAREER_COUNTRIES[0]; item.bu = CAREER_BUS[0]; }
+  for (var k in seed) item[k] = seed[k];
+  DOC.processes.push(item);
+  openEditor(id);
+}
+
 function createNewItem(pillarKey) {
+  Modal.choice('Create a new document', 'Choose how to start:', [
+    { label: '<span class="mm-tile__ic">＋</span><span class="mm-tile__x"><b>From scratch</b><small>A blank process or alignment you build step by step.</small></span>', value: 'scratch' },
+    { label: '<span class="mm-tile__ic">▤</span><span class="mm-tile__x"><b>From a template</b><small>Start from a ready-made shape and fill it in.</small></span>', value: 'template' },
+    { label: '<span class="mm-tile__ic">⧉</span><span class="mm-tile__x"><b>Duplicate existing</b><small>Copy any document you can see — steps, PICs and content.</small></span>', value: 'duplicate' }
+  ], function (how) {
+    if (how === 'scratch') createFromScratch(pillarKey);
+    else if (how === 'template') createFromTemplate(pillarKey);
+    else if (how === 'duplicate') createFromDuplicate(pillarKey);
+  });
+}
+function createFromScratch(pillarKey) {
   Modal.prompt('New item', 'Name of the new process or alignment:', '', function (t) {
     if (!t || !t.trim()) return;
     chooseKind('Is this a process or an alignment?', function (kind) {
-      var id = slug(t), taken = {}, i = 2, base = id;
-      DOC.processes.forEach(function (p) { taken[p.process_id] = 1; }); while (taken[id]) id = base + '_' + (i++);
-      var item = { process_id: id, title: t.trim(), subtitle: '', status: 'draft', pillar: pillarKey, kind: kind,
-        pic: currentUser.email, updatedAt: todayISO(), updatedBy: currentUser.email, reviewer: '', review: 'none', createdBy: currentUser.email };
-      if (pillarKey === CAREER_KEY) { item.country = careerCountry || CAREER_COUNTRIES[0]; item.bu = CAREER_BUS[0]; }
-      if (kind === 'alignment') { item.body = '<h2>Overview</h2><p>Write the alignment / guideline here.</p>'; }
-      else {
-        item.lanes = ['TPM', 'Intern', 'EDL', 'L&D Head', 'Stakeholders'];
-        item.owners = ['TPM', 'Intern', 'EDL', 'L&D Head', 'Stakeholders'];
-        item.steps = [
-          { id: 'start', label: 'Start', lane: 'Intern', type: 'start', next: ['end'], task: '', timeline: '', files: [], images: [], note: '' },
-          { id: 'end', label: 'End', lane: 'Intern', type: 'end', next: [], task: '', timeline: '', files: [], images: [], note: '' } ];
-      }
-      DOC.processes.push(item);
-      openEditor(id);
+      makeNewItem(pillarKey, t, kind, blankSeed(kind));
     });
   });
+}
+function createFromTemplate(pillarKey) {
+  Modal.choice('Pick a template', 'Start from a ready-made shape — you can change everything afterwards.',
+    TEMPLATES.map(function (tp) { return { value: tp.id,
+      label: '<span class="mm-tile__x"><b>' + esc(tp.label) + '</b><span class="kind-tag kind-tag--' + tp.kind + '">' + KIND_LABEL[tp.kind] + '</span><small>' + esc(tp.desc) + '</small></span>' }; }),
+    function (id) {
+      var tp = TEMPLATES.filter(function (x) { return x.id === id; })[0]; if (!tp) return;
+      Modal.prompt('Name this ' + KIND_LABEL[tp.kind].toLowerCase(), 'Give it a name:', tp.label, function (t) {
+        if (!t || !t.trim()) return;
+        makeNewItem(pillarKey, t, tp.kind, tp.build());
+      });
+    });
+}
+function createFromDuplicate(pillarKey) {
+  var src = DOC.processes.filter(function (p) { return !p.deleted && canSee(p); })
+    .sort(function (a, b) { return (a.title || '').localeCompare(b.title || ''); });
+  if (!src.length) { Modal.alert('Nothing to duplicate', 'There are no documents you can copy yet.'); return; }
+  Modal.choice('Duplicate a document', 'Pick a document — its steps, PICs and content are copied into a new draft in ' + esc(PILLAR_LABEL[pillarKey] || pillarKey) + '.',
+    src.map(function (p) { return { value: p.process_id,
+      label: '<span class="mm-tile__x"><b>' + esc(p.title) + '</b><span class="kind-tag kind-tag--' + kindOf(p) + '">' + KIND_LABEL[kindOf(p)] + '</span><small>' + esc(PILLAR_LABEL[p.pillar] || p.pillar) + (p.pic ? ' · PIC ' + esc(displayName(p.pic)) : '') + '</small></span>' }; }),
+    function (pid) {
+      var s = DOC.processes.filter(function (x) { return x.process_id === pid; })[0]; if (!s) return;
+      Modal.prompt('Name the copy', 'Name for the duplicated document:', s.title + ' (copy)', function (t) {
+        if (!t || !t.trim()) return;
+        makeNewItem(pillarKey, t, kindOf(s), contentDup(s));
+      });
+    });
 }
 
 /* --------------------------- item (read-only) --------------------------- */
@@ -3355,6 +3503,7 @@ function heroFor(p, flowLabelHtml) {
   var kind = kindOf(p), edit = canEditItem(p);
   var histBtn = edit ? '<button class="mk-btn hb-history" id="histBtn" title="See and restore earlier versions">&#8635; History</button>' : '';
   var delBtn = edit ? '<button class="mk-btn adm-remove" id="delProcBtn" title="Delete (move to Trash)">🗑 Delete</button>' : '';
+  var moveBtn = isAdmin() ? '<button class="mk-btn" id="moveProcBtn" title="Move to another pillar">⇄ Move</button>' : '';
   var editBtn = edit ? '<button class="mk-btn mk-btn--primary hb-editbtn" id="editProcBtn">✎ Edit this ' + KIND_LABEL[kind].toLowerCase() + '</button>' : '';
   var reviewChip = '', approveBtns = '';
   if (p.review === 'pending') {
@@ -3368,7 +3517,7 @@ function heroFor(p, flowLabelHtml) {
   return '<section class="proc-hero"><div class="proc-hero__top">' +
     '<span class="mk-status-pill mk-status-pill--' + p.status + '">' + p.status + '</span>' +
     '<span class="kind-tag kind-tag--' + kind + '">' + KIND_LABEL[kind] + '</span>' + reviewChip +
-    '<div class="mk-grow"></div>' + approveBtns + histBtn + delBtn + editBtn + '</div>' +
+    '<div class="mk-grow"></div>' + approveBtns + moveBtn + histBtn + delBtn + editBtn + '</div>' +
     '<h1 class="hb-h1">' + esc(p.title) + '</h1>' +
     '<p class="hb-lede">' + esc(p.subtitle || '') + '</p>' +
     (flowLabelHtml || '') +
@@ -3383,6 +3532,7 @@ function heroFor(p, flowLabelHtml) {
 function wireItemHeader(p) {
   var e = $('editProcBtn'); if (e) e.onclick = function () { openEditor(p.process_id); };
   var db = $('delProcBtn'); if (db) db.onclick = function () { softDeleteItem(p); };
+  var mv = $('moveProcBtn'); if (mv) mv.onclick = function () { moveItem(p); };
   var hb = $('histBtn'); if (hb) hb.onclick = function () { openHistory(p); };
   var a = $('approveBtn'); if (a) a.onclick = function () {
     var prev = p.review, prb = p.reviewedBy, pra = p.reviewedAt;
@@ -4798,8 +4948,9 @@ if (typeof GAS_MODE === 'undefined' || !GAS_MODE) bootApp();
       /* published ONLY changes on an explicit publish; a plain save of a live
          document keeps the old published version so viewers still see it. */
       var doPublish=!!p._publish; delete p._publish;
+      var doUnpublish=!!p._unpublish; delete p._unpublish;
       var archivedFlag=(p.status==='archived');
-      var pub=doPublish?content:(PUBLISHED[p.process_id]||null);
+      var pub=doPublish?content:(doUnpublish?null:(PUBLISHED[p.process_id]||null));
       var st=archivedFlag?'archived':(pub?'live':'draft');
       var row={process_id:p.process_id,kind:p.kind||'process',pillar:p.pillar,title:p.title||'',subtitle:p.subtitle||'',status:st,pic:p.pic||'',reviewer:p.reviewer||'',review:p.review||'none',draft:content,published:pub,archived:archivedFlag,deleted:!!p.deleted,deleted_by:p.deletedBy||null,deleted_at:p.deletedAt||null,updated_by:MYEMAIL,created_by:p.createdBy||MYEMAIL};
       return SB.from('documents').upsert(row,{onConflict:'process_id'}).select().single().then(function(res){
