@@ -106,7 +106,7 @@ body{
 a{ color: inherit; }
 img{ max-width: 100%; display:block; }
 
-::selection{ background: #F4F2EF; color: var(--ink); }
+::selection{ background: #e6dfcf; color: var(--ink); }
 
 :focus-visible{
   outline: 2px solid var(--indigo-2);
@@ -252,12 +252,13 @@ img{ max-width: 100%; display:block; }
 .dg-legend__swatch--decision{ background: var(--terracotta-fill); transform: rotate(45deg); border-radius: 2px; }
 .dg-legend__swatch--terminal{ background: var(--olive-fill); border-radius: 999px; }
 .dg-legend__hint{
-  margin-left: auto;
   font-family: var(--font-body);
   font-weight: 500;
   font-size: 11px;
   color: var(--ink-faint);
 }
+/* hint + zoom pinned to the right of the legend row, directly above the flow */
+.dg-legend__tools{margin-left:auto;display:inline-flex;align-items:center;gap:10px}
 
 .dg-wrap{
   display:flex;
@@ -748,9 +749,16 @@ img{ max-width: 100%; display:block; }
 .pillar-data{--p-accent:#9BDDE5;--p-text:#0E5866}
 .pillar-logistics{--p-accent:#B95D77;--p-text:#7A2F42}
 .pillar-training{--p-accent:#BF6B21;--p-text:#7A3F0F}
+.pillar-career{--p-accent:#242F52;--p-text:#242F52}
 
 .toc-card--pillar{border-top:4px solid var(--p-accent)}
 .toc-card--pillar:hover{background:var(--p-accent) !important;color:var(--indigo-1) !important}
+/* Career's accent is the dark navy, so its hover text must be light to stay legible */
+.toc-card--pillar.pillar-career:hover,
+.toc-card--pillar.pillar-career:hover .toc-card__title,
+.toc-card--pillar.pillar-career:hover .toc-card__meta,
+.toc-card--pillar.pillar-career:hover .toc-card__meta span,
+.toc-card--pillar.pillar-career:hover .hb-access{color:#fff !important}
 .pillar-tag{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-body);
   font-weight:700;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--p-text, var(--ink-soft))}
 .pillar-tag__dot{width:8px;height:8px;border-radius:50%;background:var(--p-accent, var(--ink-faint))}
@@ -1581,6 +1589,13 @@ var MARK_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABDgAAAM7CAYAA
     var conns = [];
     var rightEdge = lanes.length ? lanes[lanes.length - 1].left + lanes[lanes.length - 1].width : CANVAS_PAD;
     var backSeen = 0;
+    /* Obstacle checks for tidy orthogonal routing: does any box sit on a vertical
+       line at x (spanning yA..yB) or a horizontal line at y (spanning xA..xB)?
+       Endpoints are skipped so a segment may touch its own source/target box. */
+    function vBlocked(x, yA, yB, skip) { var lo = Math.min(yA, yB), hi = Math.max(yA, yB);
+      return nodes.some(function (n) { return skip.indexOf(n.id) < 0 && x > n.x - 10 && x < n.x + n.w + 10 && n.y < hi - 6 && n.y + n.h > lo + 6; }); }
+    function hBlocked(y, xA, xB, skip) { var lo = Math.min(xA, xB), hi = Math.max(xA, xB);
+      return nodes.some(function (n) { return skip.indexOf(n.id) < 0 && y > n.y - 10 && y < n.y + n.h + 10 && n.x < hi - 6 && n.x + n.w > lo + 6; }); }
     steps.forEach(function (s) {
       var a = pos[s.id]; if (!a) return;
       var fwd = [], bk = [], side = [];
@@ -1626,15 +1641,29 @@ var MARK_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABDgAAAM7CAYAA
         } else {
           var f = group[0], b = f.b, x2 = b.x + b.w / 2, y2 = b.y, path, lp;
           if (b.depth - a.depth >= 2 && x1 !== x2) {
-            /* Long jump across several rows to another lane: leave the box from
-               its BOTTOM into the (box-free) row gap, run along the gap to a
-               reserved channel on the right, drop down the channel, then along
-               the gap above the target and up into its top — so it never cuts
-               across a box or another box's row. */
-            var channelX = rightEdge + BACK_GAP + (backSeen++) * BACK_GAP;
-            var gy1 = a.y + a.h + ROW_GAP * 0.5, gy2 = b.y - ROW_GAP * 0.5;
-            path = 'M' + x1 + ',' + (a.y + a.h) + ' L' + x1 + ',' + gy1 + ' L' + channelX + ',' + gy1 + ' L' + channelX + ',' + gy2 + ' L' + x2 + ',' + gy2 + ' L' + x2 + ',' + y2;
-            conns.push({ from: s.id, to: f.e.to, path: path, label: f.e.label, labelPos: { x: channelX - 6, y: (gy1 + gy2) / 2 - 8 }, back: true });
+            /* Forward jump across several rows to another column. Prefer a tidy
+               LOCAL route over the long detour to the far-right channel:
+               (1) a decision branching sideways → leave the near RIGHT/LEFT vertex,
+                   run straight across at mid-height, then drop into the target top;
+               (2) otherwise leave the bottom, cross in the gap just below this row,
+                   then drop straight down the target's own column into its top.
+               Only when a box actually sits in the way do we fall back to the
+               reserved right channel (which never crosses a box). */
+            var skip = [s.id, f.e.to];
+            var gy1 = a.y + a.h + ROW_GAP * 0.5;
+            var sideY = a.y + a.h / 2, sideX = (x2 > x1) ? a.x + a.w : a.x;
+            if (a.type === 'decision' && !vBlocked(x2, sideY, y2, skip) && !hBlocked(sideY, sideX, x2, skip)) {
+              path = 'M' + sideX + ',' + sideY + ' L' + x2 + ',' + sideY + ' L' + x2 + ',' + y2;
+              conns.push({ from: s.id, to: f.e.to, path: path, label: f.e.label, labelPos: { x: (sideX + x2) / 2, y: sideY - 8 }, back: false });
+            } else if (!vBlocked(x2, gy1, y2, skip) && !hBlocked(gy1, x1, x2, skip)) {
+              path = 'M' + x1 + ',' + (a.y + a.h) + ' L' + x1 + ',' + gy1 + ' L' + x2 + ',' + gy1 + ' L' + x2 + ',' + y2;
+              conns.push({ from: s.id, to: f.e.to, path: path, label: f.e.label, labelPos: { x: (x1 + x2) / 2, y: gy1 - 8 }, back: false });
+            } else {
+              var channelX = rightEdge + BACK_GAP + (backSeen++) * BACK_GAP;
+              var gy2 = b.y - ROW_GAP * 0.5;
+              path = 'M' + x1 + ',' + (a.y + a.h) + ' L' + x1 + ',' + gy1 + ' L' + channelX + ',' + gy1 + ' L' + channelX + ',' + gy2 + ' L' + x2 + ',' + gy2 + ' L' + x2 + ',' + y2;
+              conns.push({ from: s.id, to: f.e.to, path: path, label: f.e.label, labelPos: { x: channelX - 6, y: (gy1 + gy2) / 2 - 8 }, back: true });
+            }
           } else {
             if (x1 === x2) {
               path = 'M' + x1 + ',' + y1 + ' L' + x2 + ',' + y2;
@@ -1651,15 +1680,28 @@ var MARK_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABDgAAAM7CAYAA
         }
       });
       bk.forEach(function (f) {
-        var b = f.b, x1c = a.x + a.w / 2, x2c = b.x + b.w / 2;
-        if (Math.abs(x1c - x2c) < 6) {
-          /* Back-loop within the same column (e.g. a decision's rework step
-             returning to it): a tidy loop up the lane's LEFT gutter and into the
-             target's left edge — not a big detour to the right channel. */
-          var offX = Math.min(a.x, b.x) - 18, syM = a.y + a.h / 2, tyM = b.y + b.h / 2;
-          var path = 'M' + a.x + ',' + syM + ' L' + offX + ',' + syM + ' L' + offX + ',' + tyM + ' L' + b.x + ',' + tyM;
-          conns.push({ from: s.id, to: f.e.to, path: path, label: f.e.label, labelPos: { x: offX - 6, y: (syM + tyM) / 2 - 8 }, back: true });
-          return;
+        var b = f.b, x1c = a.x + a.w / 2, x2c = b.x + b.w / 2, skip = [s.id, f.e.to];
+        /* Short back-loop: the rework step and its target are in the same lane (or
+           the same column). Draw a tidy loop up a side gutter into the target's
+           matching edge, instead of a big detour to the far-right channel. Prefer
+           the RIGHT side (conventional for a return path and easier on the eye);
+           flip to the LEFT only when the right gutter is occupied. */
+        if (a.lane === b.lane || Math.abs(x1c - x2c) < 40) {
+          var syM = a.y + a.h / 2, tyM = b.y + b.h / 2;
+          var rightX = Math.max(a.x + a.w, b.x + b.w) + 18, leftX = Math.min(a.x, b.x) - 18;
+          var rightOk = !vBlocked(rightX, syM, tyM, skip);
+          var leftOk = leftX > 8 && !vBlocked(leftX, syM, tyM, skip);
+          if (rightOk) {
+            var pathR = 'M' + (a.x + a.w) + ',' + syM + ' L' + rightX + ',' + syM + ' L' + rightX + ',' + tyM + ' L' + (b.x + b.w) + ',' + tyM;
+            conns.push({ from: s.id, to: f.e.to, path: pathR, label: f.e.label, labelPos: { x: rightX + 6, y: (syM + tyM) / 2 - 8 }, back: true });
+            return;
+          }
+          if (leftOk) {
+            var pathL = 'M' + a.x + ',' + syM + ' L' + leftX + ',' + syM + ' L' + leftX + ',' + tyM + ' L' + b.x + ',' + tyM;
+            conns.push({ from: s.id, to: f.e.to, path: pathL, label: f.e.label, labelPos: { x: leftX - 6, y: (syM + tyM) / 2 - 8 }, back: true });
+            return;
+          }
+          /* both gutters blocked → fall through to the right-channel route below */
         }
         var channelX = rightEdge + BACK_GAP + (backSeen++) * BACK_GAP;
         var gy1 = a.y - ROW_GAP * 0.5, gy2 = b.y + b.h + ROW_GAP * 0.5;
@@ -1673,6 +1715,11 @@ var MARK_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABDgAAAM7CAYAA
 
     var backRows = conns.filter(function (c) { return c.back; }).length;
     var width = rightEdge + BACK_GAP * (backRows + 1) + CANVAS_PAD;
+    /* Make sure no connector (e.g. a right-gutter back-loop) is clipped: extend
+       the canvas to the rightmost x any path reaches. */
+    var maxConnX = 0;
+    conns.forEach(function (c) { (c.path.match(/-?\d+(?:\.\d+)?/g) || []).forEach(function (t, i) { if (i % 2 === 0) maxConnX = Math.max(maxConnX, parseFloat(t)); }); });
+    width = Math.max(width, maxConnX + CANVAS_PAD);
     var height = top - ROW_GAP + CANVAS_PAD;
 
     return {
@@ -2075,7 +2122,7 @@ var PILLAR_LABEL = {}; PILLARS.forEach(function (p) { PILLAR_LABEL[p.key] = p.la
    business unit (stored inside the document, no schema change). */
 var CAREER_KEY = 'career';
 var CAREER_COUNTRIES = ['Vietnam', 'Cambodia'];
-var CAREER_BUS = ["Pizza 4P's Restaurants", 'Delivery Hub', 'Ippudo'];
+var CAREER_BUS = ['General', "Pizza 4P's Restaurants", 'Delivery Hub', 'Ippudo'];
 var careerCountry = CAREER_COUNTRIES[0];
 /* Derive a display name from an email local part: nguyen.che -> "Nguyen Che". */
 function nameFromEmail(e) { if (!e) return ''; return String(e).split('@')[0].split(/[._-]+/).filter(Boolean)
@@ -3746,11 +3793,9 @@ function drawProcess(p) {
       vs.map(function (v) { return '<option value="' + esc(v.key) + '"' + (compareWith === v.key ? ' selected' : '') + '>' + esc(v.name) + '</option>'; }).join('') +
       '</select></label>';
   }
-  var hintZoom = (viewMode === 'matrix') ? '' :
-    '<span class="dg-legend__hint dg-hint--bar">Click a step to see full details</span><span class="dg-zoomctl" id="siteZoomCtl"></span>';
   S.innerHTML = heroFor(p, metaChips) +
     '<section class="proc-diagram"><div class="proc-diagram__label"><h2>Process flow</h2>' +
-    modeCtl + '<span class="mk-grow"></span>' + rightCtl + hintZoom + '</div>' +
+    modeCtl + '<span class="mk-grow"></span>' + rightCtl + '</div>' +
     '<div id="procBody"></div></section>';
   wireItemHeader(p);
   /* mode + selector wiring */
@@ -3765,13 +3810,20 @@ function drawProcess(p) {
   renderProcDiagram(p);
 }
 
+/* Hint + zoom control, right-aligned in the legend row so it sits directly
+   above the flowchart (near it) rather than up in the section header. */
+function legendToolsHTML() {
+  return '<span class="dg-legend__tools"><span class="dg-legend__hint dg-hint--bar">Click a step to see full details, drag to move</span>' +
+    '<span class="dg-zoomctl" id="siteZoomCtl"></span></span>';
+}
 function renderProcDiagram(p) {
   var flow = flowOf(p, viewVariant);
   $('procBody').innerHTML =
     '<div class="dg-legend">' +
     '<span class="dg-legend__item"><i class="dg-legend__swatch" style="background:#02499D"></i>Action step</span>' +
     '<span class="dg-legend__item"><i class="dg-legend__swatch" style="background:#BF6B1F"></i>Review / decision</span>' +
-    '<span class="dg-legend__item"><i class="dg-legend__swatch" style="background:#2A4728"></i>Start / End</span></div>' +
+    '<span class="dg-legend__item"><i class="dg-legend__swatch" style="background:#2A4728"></i>Start / End</span>' +
+    legendToolsHTML() + '</div>' +
     '<div class="proc-layout"><div id="sdiag"></div><div id="sdetail"></div></div>';
   var steps = flow.steps || [];
   var first = steps.filter(function (s) { return s.type !== 'start' && s.type !== 'end'; })[0];
@@ -3803,7 +3855,8 @@ function renderProcCompare(p) {
     '<span class="dg-legend__item"><i class="dg-legend__swatch" style="background:#02499D"></i>Same as Base</span>' +
     '<span class="dg-legend__item"><i class="dg-legend__swatch" style="background:#2E9B4F"></i>Added in ' + esc(variant.name) + '</span>' +
     '<span class="dg-legend__item"><i class="dg-legend__swatch" style="background:#E0912F"></i>Changed</span>' +
-    '<span class="dg-legend__item"><i class="dg-legend__swatch" style="background:#C0392B"></i>Removed (not used here)</span></div>' +
+    '<span class="dg-legend__item"><i class="dg-legend__swatch" style="background:#C0392B"></i>Removed (not used here)</span>' +
+    legendToolsHTML() + '</div>' +
     '<div class="proc-layout"><div id="sdiag"></div><div id="sdetail"></div></div>';
   $('sdetail').innerHTML = diffListHTML(p, variant, diff);
   function highlight(id) {
