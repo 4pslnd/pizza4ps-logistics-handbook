@@ -1,6 +1,6 @@
 # L&D Playbook — Tiến độ & Những điểm đã chốt
 
-_Cập nhật: 2026-09-23 · Nhánh phát triển: `handbook/supabase-web` → merge vào `main`_
+_Cập nhật: 2026-09-25 · Nhánh phát triển: `handbook/supabase-web` → merge vào `main`_
 
 Tài liệu này ghi lại các quyết định đã chốt và trạng thái triển khai của L&D Playbook
 (ứng dụng nội bộ: sơ đồ quy trình dạng swimlane + tài liệu "alignment", có luồng
@@ -61,10 +61,13 @@ draft → duyệt → publish, phân quyền theo từng mục, và so sánh bi�
 
 - **Thông báo Publish → Google Chat + email nhóm: ĐÃ BẬT** (2026-09-25). Đã deploy
   `mailer.gs` (New version) và chạy `supabase_v9_publish_notify.sql`; `app_config` có
-  đủ 3 key `mailer_url`, `mailer_secret`, `publish_group_email`. File cấu hình lưu tại
-  `deploy/`.
+  đủ 3 key `mailer_url`, `mailer_secret`, `publish_group_email`. Đã test thành công
+  (nhận được cả email lẫn thông báo Google Chat). File cấu hình lưu tại `deploy/`.
+- **Nội dung thông báo chuyển sang TIẾNG ANH** (2026-09-25): cả email (duyệt & publish)
+  lẫn card Google Chat. Cần deploy lại `mailer.gs` bản mới (New version) để có hiệu lực;
+  nhớ điền lại `SHARED_SECRET` + `CHAT_WEBHOOK` (repo để placeholder cho bảo mật).
 
-_Các PR đã squash-merge trong đợt này: #50 → #58._
+_Các PR đã squash-merge trong đợt này: #50 → #60._
 
 ---
 
