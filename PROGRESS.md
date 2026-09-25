@@ -66,6 +66,10 @@ draft → duyệt → publish, phân quyền theo từng mục, và so sánh bi�
 - **Nội dung thông báo chuyển sang TIẾNG ANH** (2026-09-25): cả email (duyệt & publish)
   lẫn card Google Chat. Cần deploy lại `mailer.gs` bản mới (New version) để có hiệu lực;
   nhớ điền lại `SHARED_SECRET` + `CHAT_WEBHOOK` (repo để placeholder cho bảo mật).
+- **Custom SMTP cho email đăng nhập (magic-link): ĐÃ BẬT & test thành công** (2026-09-25).
+  Trỏ Supabase Auth qua Google Workspace SMTP (`smtp.gmail.com`, App Password),
+  rate limit đặt 30 email/giờ → hết lỗi "email rate limit exceeded". Có thể nâng
+  rate limit khi cần. Hướng dẫn: `deploy/custom-smtp-setup.md`.
 
 _Các PR đã squash-merge trong đợt này: #50 → #60._
 
@@ -73,8 +77,8 @@ _Các PR đã squash-merge trong đợt này: #50 → #60._
 
 ## 2. Việc cần anh/chị làm (cấu hình phía Google/Supabase — không phải code)
 
-- **Lỗi "email rate limit exceeded"** (email magic-link đăng nhập): làm theo hướng dẫn
-  trong `deploy/custom-smtp-setup.md` (cấu hình Custom SMTP cho Supabase Auth) — khi nào tiện thì làm.
+- _Hiện không còn mục nào._ (Nhắc: khi sửa `mailer.gs`, luôn Deploy → New version;
+  khi nâng số người đăng nhập, có thể tăng rate limit ở Authentication → Rate Limits.)
 
 ---
 
