@@ -43,20 +43,20 @@ function _handleApproval(b) {
   if (_emailAllowed(to)) {
     var html =
       '<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#24264A">' +
-      '<p>Chào ' + _esc(b.reviewerName || to) + ',</p>' +
-      '<p><b>' + _esc(b.senderName || b.senderEmail || 'Ai đó') + '</b> vừa gửi một ' +
-        _esc(b.type || 'tài liệu') + ' để bạn duyệt:</p>' +
-      _table([['Tiêu đề', b.title], ['Pillar', b.pillar], ['Loại', b.type], ['PIC', b.pic],
-              ['Người gửi', _who(b.senderName, b.senderEmail)], ['Thời gian', b.submittedAt]]) +
-      _button(b.link, 'Mở tài liệu để duyệt', '#02499D') +
-      '<p style="color:#7A8199;font-size:12px">Bạn có thể Approve, Approve &amp; publish, ' +
-        'hoặc Request changes ngay trên tài liệu.</p></div>';
-    var msg = { to: to, subject: '[L&D Playbook] Cần bạn duyệt: ' + (b.title || '(no title)'),
+      '<p>Hi ' + _esc(b.reviewerName || to) + ',</p>' +
+      '<p><b>' + _esc(b.senderName || b.senderEmail || 'Someone') + '</b> submitted a ' +
+        _esc(b.type || 'document') + ' for your approval:</p>' +
+      _table([['Title', b.title], ['Pillar', b.pillar], ['Type', b.type], ['PIC', b.pic],
+              ['Submitted by', _who(b.senderName, b.senderEmail)], ['Submitted at', b.submittedAt]]) +
+      _button(b.link, 'Open the document to review', '#02499D') +
+      '<p style="color:#7A8199;font-size:12px">You can Approve, Approve &amp; publish, ' +
+        'or Request changes right on the document.</p></div>';
+    var msg = { to: to, subject: '[L&D Playbook] Approval needed: ' + (b.title || '(no title)'),
                 htmlBody: html, name: SENDER_NAME };
     if (CC_APPROVAL && _emailAllowed(CC_APPROVAL)) msg.cc = CC_APPROVAL;
     MailApp.sendEmail(msg);
   }
-  _postChat(_card('⏳ Đang chờ duyệt', b, b.submittedAt, _who(b.senderName, b.senderEmail), 'Người gửi'));
+  _postChat(_card('⏳ Waiting for approval', b, b.submittedAt, _who(b.senderName, b.senderEmail), 'Submitted by'));
   return _json({ ok: true });
 }
 
@@ -65,27 +65,27 @@ function _handlePublished(b) {
   if (_emailAllowed(group)) {
     var html =
       '<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#24264A">' +
-      '<p>Một ' + _esc(b.type || 'tài liệu') + ' vừa được publish trên L&amp;D Playbook:</p>' +
-      _table([['Tiêu đề', b.title], ['Pillar', b.pillar], ['Loại', b.type], ['PIC', b.pic],
-              ['Người publish', _who(b.publisherName, b.publisherEmail)], ['Thời gian', b.publishedAt]]) +
-      _button(b.link, 'Mở tài liệu', '#2A4728') + '</div>';
-    MailApp.sendEmail({ to: group, subject: '[L&D Playbook] Đã publish: ' + (b.title || '(no title)'),
+      '<p>A ' + _esc(b.type || 'document') + ' was just published on the L&amp;D Playbook:</p>' +
+      _table([['Title', b.title], ['Pillar', b.pillar], ['Type', b.type], ['PIC', b.pic],
+              ['Published by', _who(b.publisherName, b.publisherEmail)], ['Published at', b.publishedAt]]) +
+      _button(b.link, 'Open the document', '#2A4728') + '</div>';
+    MailApp.sendEmail({ to: group, subject: '[L&D Playbook] Published: ' + (b.title || '(no title)'),
                         htmlBody: html, name: SENDER_NAME });
   }
-  _postChat(_card('📣 Đã publish', b, b.publishedAt, _who(b.publisherName, b.publisherEmail), 'Người publish'));
+  _postChat(_card('📣 Published', b, b.publishedAt, _who(b.publisherName, b.publisherEmail), 'Published by'));
   return _json({ ok: true });
 }
 
 /* ---- Google Chat card (cardsV2) ---- */
 function _card(statusText, b, whenText, who, whoLabel) {
   var widgets = [
-    { decoratedText: { topLabel: 'Tiêu đề',    text: _esc(b.title || '') } },
-    { decoratedText: { topLabel: 'Trạng thái', text: _esc(statusText) } },
-    { decoratedText: { topLabel: 'Pillar',     text: _esc((b.pillar || '') + ' - ' + (b.type || '')) } },
-    { decoratedText: { topLabel: whoLabel,     text: _esc(who || '') } },
-    { decoratedText: { topLabel: 'Thời gian',  text: _esc(whenText || '') } }
+    { decoratedText: { topLabel: 'Title',   text: _esc(b.title || '') } },
+    { decoratedText: { topLabel: 'Status',  text: _esc(statusText) } },
+    { decoratedText: { topLabel: 'Pillar',  text: _esc((b.pillar || '') + ' - ' + (b.type || '')) } },
+    { decoratedText: { topLabel: whoLabel,  text: _esc(who || '') } },
+    { decoratedText: { topLabel: 'Time',    text: _esc(whenText || '') } }
   ];
-  if (b.link) widgets.push({ buttonList: { buttons: [{ text: 'Mở tài liệu', onClick: { openLink: { url: b.link } } }] } });
+  if (b.link) widgets.push({ buttonList: { buttons: [{ text: 'Open the document', onClick: { openLink: { url: b.link } } }] } });
   return { cardsV2: [{ cardId: 'ld-' + Date.now(),
     card: { header: { title: 'L&D Playbook', subtitle: statusText }, sections: [{ widgets: widgets }] } }] };
 }
