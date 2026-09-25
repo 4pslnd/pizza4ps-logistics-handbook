@@ -1072,9 +1072,24 @@ textarea{resize:vertical;min-height:60px;line-height:1.5}
 .print-sub{font-size:14px;color:#4A5268;margin:0 0 6px}
 .print-meta{font-size:12px;color:#5A6072}
 .print-h2{font-size:16px;color:#242F52;margin:0 0 10px}
-.print-diagram{margin:6px 0 10px}
-.print-step{border:1px solid #E7E1CF;border-radius:8px;padding:6px 12px;margin:0 0 8px;break-inside:avoid;page-break-inside:avoid}
+.print-diagram{margin:6px 0 10px;text-align:center}
 .print-body{font-size:14px}
+/* flat, phase-grouped step details (no nested boxes) */
+.pphase{font-size:13.5px;font-weight:700;color:#242F52;margin:16px 0 8px;padding-bottom:4px;border-bottom:2px solid #242F52;break-after:avoid;page-break-after:avoid}
+.pstep{padding:8px 0;border-bottom:1px solid #E7E1CF;break-inside:avoid;page-break-inside:avoid}
+.pstep__hd{display:flex;align-items:baseline;gap:8px}
+.pstep__num{flex:none;font-size:11px;font-weight:700;color:#fff;background:#242F52;border-radius:5px;padding:1px 7px;font-variant-numeric:tabular-nums}
+.pstep__num--dec{background:#BF6B1F}
+.pstep__name{font-weight:700;font-size:14px;color:#1B2233}
+.pstep__meta{font-size:11.5px;color:#5A6072;margin:3px 0 0 44px}
+.pstep__desc{font-size:12.5px;color:#333;margin:4px 0 0 44px}
+.pstep__desc p{margin:2px 0}.pstep__desc ul,.pstep__desc ol{margin:2px 0;padding-left:18px}
+.pstep__subs{font-size:12.5px;color:#333;margin:4px 0 0 60px;padding-left:14px}
+.pstep__subs li{margin:2px 0}.pstep__subs li>*{margin:1px 0}
+.pstep__files{font-size:11.5px;margin:4px 0 0 44px}
+.pstep__note{font-size:11.5px;font-style:italic;color:#5A6072;margin:4px 0 0 44px}
+.pstep__files a,.pstep__desc a,.pstep__subs a{color:#1B57A6}
+.pdf-nodelink{text-decoration:none}
 @media print{
   html,body{background:#fff !important}
   body.is-printing>*:not(#printDoc){display:none !important}
@@ -2375,6 +2390,32 @@ function moveItem(p) {
   }
 }
 
+/* One step rendered as a flat block for the PDF (number badge + name on one line,
+   then indented meta / description / sub-steps / files / note) — deliberately no
+   nested boxes, just a thin divider between steps. */
+function pdfStepHtml(s, num) {
+  var isDec = s.type === 'decision';
+  var pers = (s.persons != null && s.persons !== '') ? Number(s.persons) : null;
+  var wd = (s.workingDays != null && s.workingDays !== '') ? s.workingDays : null;
+  var meta = [];
+  if (s.lane) meta.push('PIC: ' + esc(picLabel(s)));
+  if (wd != null) meta.push(esc(wd) + ' wd/person' + (pers != null ? ' × ' + pers + ' = ' + round2(Number(wd) * pers) + ' wd' : ''));
+  else if (pers != null) meta.push(pers + (pers === 1 ? ' doer' : ' doers'));
+  if (s.timeline) meta.push('Timeline: ' + esc(s.timeline));
+  var subs = (s.substeps || []).filter(function (x) { return x && (x.label || x.desc); });
+  var files = (s.files || []).filter(function (f) { return f && f.label; });
+  return '<div class="pstep" id="pdfstep-' + esc(s.id) + '">' +
+    '<div class="pstep__hd"><span class="pstep__num' + (isDec ? ' pstep__num--dec' : '') + '">' + esc(num || '') + '</span>' +
+    '<span class="pstep__name">' + esc(s.label || '') + '</span></div>' +
+    (meta.length ? '<div class="pstep__meta">' + meta.join('&nbsp;&nbsp;·&nbsp;&nbsp;') + '</div>' : '') +
+    (s.task ? '<div class="pstep__desc">' + taskHtml(s.task) + '</div>' : '') +
+    (subs.length ? '<ol class="pstep__subs">' + subs.map(function (ss) {
+      return '<li><b>' + esc(ss.label || '') + '</b>' + (ss.desc ? taskHtml(ss.desc) : '') + '</li>'; }).join('') + '</ol>' : '') +
+    (files.length ? '<div class="pstep__files">' + files.map(function (f) {
+      return looksLikeUrl(f.url) ? '<a href="' + esc(f.url) + '">' + esc(f.label) + '</a>' : esc(f.label); }).join('&nbsp;·&nbsp;') + '</div>' : '') +
+    (s.note ? '<div class="pstep__note">Note: ' + esc(s.note) + '</div>' : '') +
+    '</div>';
+}
 /* -------------------------------- PDF export --------------------------------
    Admin-only. Builds a clean, self-contained print layout and calls the
    browser's native print (Save as PDF) — vector output, no external libraries,
@@ -2383,7 +2424,7 @@ function moveItem(p) {
 function exportPDF(p) {
   if (!isAdmin()) { Modal.alert('Admins only', 'Only admins can export a PDF.'); return; }
   var kind = kindOf(p), isProc = kind === 'process';
-  var PW = 1497, PH = 1000;   /* usable A3-landscape px at ~96dpi (12mm margins) */
+  var PW = 1497, PH = 1030;   /* usable A3-landscape px at ~96dpi (12mm margins) */
 
   var ps = document.getElementById('printPageStyle');
   if (!ps) { ps = document.createElement('style'); ps.id = 'printPageStyle'; document.head.appendChild(ps); }
@@ -2413,14 +2454,41 @@ function exportPDF(p) {
 
   if (isProc) {
     var dgWrap = document.createElement('div'); dgWrap.className = 'print-diagram'; host.appendChild(dgWrap);
+    var numMap = {}, g = null;
     try {
-      var g = AutoLayout.layout({ title: p.title, subtitle: p.subtitle, steps: p.steps, lanes: p.lanes || [] });
-      var h = DiagramRender.render(dgWrap, g, {});
-      h.setZoom(Math.min(1, PW / g.canvas.width, PH / g.canvas.height));
+      g = AutoLayout.layout({ title: p.title, subtitle: p.subtitle, steps: p.steps, lanes: p.lanes || [] });
+      g.nodes.forEach(function (n) { if (n.number) numMap[n.id] = n.number; });
+      var dh = DiagramRender.render(dgWrap, g, {});
+      /* Fit the WHOLE flowchart onto page 1 under the header, and centre it. */
+      var headerH = (host.querySelector('.print-hd') || {}).offsetHeight || 120;
+      var availH = PH - headerH - 70;
+      var sc = Math.min(1, PW / g.canvas.width, availH / g.canvas.height);
+      dh.setZoom(sc);
+      var wrapEl = dgWrap.querySelector('.dg-wrap--vert');
+      if (wrapEl) { wrapEl.style.width = Math.ceil(g.canvas.width * sc) + 'px'; wrapEl.style.margin = '0 auto'; }
+      /* Clickable link from each step box → its detail entry below. */
+      dgWrap.querySelectorAll('.dg-node[data-id]').forEach(function (nd) {
+        var id = nd.getAttribute('data-id'); if (!numMap[id]) return;
+        var a = document.createElement('a'); a.className = 'pdf-nodelink'; a.href = '#pdfstep-' + id;
+        a.style.cssText = 'position:absolute;left:' + nd.style.left + ';top:' + nd.style.top + ';width:' + nd.style.width + ';height:' + nd.style.height + ';z-index:6;display:block';
+        nd.parentNode.appendChild(a);
+      });
     } catch (e) { dgWrap.innerHTML = '<div class="mk-empty">Diagram unavailable.</div>'; }
     var order; try { order = AutoLayout.flowOrder(p); } catch (e) { order = (p.steps || []).slice(); }
-    var detail = order.filter(function (s) { return s.type !== 'start' && s.type !== 'end'; })
-      .map(function (s) { return '<div class="print-step">' + renderDetailCard(s) + '</div>'; }).join('');
+    /* Group step details by phase (heading = phase number + name), numbered to
+       match the flowchart badges. */
+    var phaseName = {}; ((g && g.phases) || []).forEach(function (ph) { var m = /^(\d+)\.\s*(.*)$/.exec(ph.label || ''); if (m) phaseName[m[1]] = m[2]; });
+    var groups = [], gi = {};
+    order.forEach(function (s) {
+      if (s.type === 'start' || s.type === 'end') return;
+      var num = numMap[s.id] || '', pk = num.indexOf('.') > 0 ? num.split('.')[0] : '_';
+      if (!(pk in gi)) { gi[pk] = groups.length; groups.push({ key: pk, name: phaseName[pk] || '', steps: [] }); }
+      groups[gi[pk]].steps.push(s);
+    });
+    var detail = groups.map(function (gr) {
+      var head = gr.name ? '<h3 class="pphase">' + esc((gr.key !== '_' ? gr.key + '. ' : '') + gr.name) + '</h3>' : '';
+      return head + gr.steps.map(function (s) { return pdfStepHtml(s, numMap[s.id]); }).join('');
+    }).join('');
     var steps = document.createElement('div'); steps.className = 'print-steps';
     steps.innerHTML = '<h2 class="print-h2">Step details</h2>' + (detail || '<p>No steps.</p>');
     host.appendChild(steps);
