@@ -1064,6 +1064,28 @@ textarea{resize:vertical;min-height:60px;line-height:1.5}
 .rev-banner__body{font-size:13.5px;color:var(--ink);line-height:1.5}
 .rev-banner__body p{margin:4px 0}.rev-banner__body ul,.rev-banner__body ol{margin:4px 0;padding-left:22px}
 .rev-banner__body a{color:var(--indigo-2,#1B57A6);text-decoration:underline}
+/* ---- PDF export (print) layout ---- */
+.print-doc{position:fixed;left:-10000px;top:0;z-index:-1;background:#fff;color:#1B2233;font-family:var(--font-body)}
+.print-hd{margin-bottom:14px}
+.print-brand{font-weight:700;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#02499D}
+.print-title{font-size:26px;margin:4px 0;color:#242F52;font-family:var(--font-body)}
+.print-sub{font-size:14px;color:#4A5268;margin:0 0 6px}
+.print-meta{font-size:12px;color:#5A6072}
+.print-h2{font-size:16px;color:#242F52;margin:0 0 10px}
+.print-diagram{margin:6px 0 10px}
+.print-step{border:1px solid #E7E1CF;border-radius:8px;padding:6px 12px;margin:0 0 8px;break-inside:avoid;page-break-inside:avoid}
+.print-body{font-size:14px}
+@media print{
+  html,body{background:#fff !important}
+  body.is-printing>*:not(#printDoc){display:none !important}
+  #printDoc{position:static !important;left:auto !important;width:auto !important;z-index:auto !important;display:block !important}
+  #printDoc .dg-topbar{display:none !important}
+  #printDoc .dg-scroll,#printDoc .dg-scroll--vert{overflow:visible !important;max-height:none !important}
+  #printDoc .dg-wrap,#printDoc .dg-wrap--vert{border:none !important;box-shadow:none !important}
+  #printDoc .print-steps{page-break-before:always}
+  #printDoc .dp{box-shadow:none !important}
+  #printDoc .dp-images__hint,#printDoc .dp-empty-state{display:none !important}
+}
 
 /* ------------------------------ 3-col editor ------------------------------ */
 .mk-cols{display:grid;grid-template-columns:minmax(0,1fr) 300px 380px;height:calc(100vh - 112px);min-height:600px}
@@ -2353,6 +2375,64 @@ function moveItem(p) {
   }
 }
 
+/* -------------------------------- PDF export --------------------------------
+   Admin-only. Builds a clean, self-contained print layout and calls the
+   browser's native print (Save as PDF) — vector output, no external libraries,
+   works offline. A process prints landscape (whole flowchart fit to one page +
+   step details after it); an alignment prints portrait (title + body). */
+function exportPDF(p) {
+  if (!isAdmin()) { Modal.alert('Admins only', 'Only admins can export a PDF.'); return; }
+  var kind = kindOf(p), isProc = kind === 'process';
+  var PW = 1497, PH = 1000;   /* usable A3-landscape px at ~96dpi (12mm margins) */
+
+  var ps = document.getElementById('printPageStyle');
+  if (!ps) { ps = document.createElement('style'); ps.id = 'printPageStyle'; document.head.appendChild(ps); }
+  ps.textContent = '@page{ size: ' + (isProc ? 'A3 landscape' : 'A4 portrait') + '; margin: 12mm; }';
+
+  var old = document.getElementById('printDoc'); if (old) old.remove();
+  var host = document.createElement('div'); host.id = 'printDoc'; host.className = 'print-doc';
+  host.style.width = (isProc ? PW : 703) + 'px';   /* real width off-screen so layout computes */
+  var metaBits = [
+    'Pillar: ' + (PILLAR_LABEL[p.pillar] || p.pillar),
+    'Type: ' + KIND_LABEL[kind],
+    (p.pillar === CAREER_KEY && p.country ? 'Market: ' + p.country + (p.bu ? ' · ' + p.bu : '') : ''),
+    p.pic ? 'PIC: ' + displayName(p.pic) : '',
+    'Status: ' + p.status,
+    p.updatedBy ? 'Updated by ' + displayName(p.updatedBy) + (p.updatedAt ? ' on ' + fmtDate(p.updatedAt) : '') : ''
+  ].filter(Boolean);
+  host.innerHTML =
+    '<div class="print-hd"><div class="print-brand">L&amp;D Playbook</div>' +
+    '<h1 class="print-title">' + esc(p.title) + '</h1>' +
+    (p.subtitle ? '<p class="print-sub">' + esc(p.subtitle) + '</p>' : '') +
+    '<div class="print-meta">' + metaBits.map(esc).join('&nbsp;&nbsp;·&nbsp;&nbsp;') + '</div></div>';
+  document.body.appendChild(host);
+  document.body.classList.add('is-printing');
+
+  function cleanup() { document.body.classList.remove('is-printing'); var h = document.getElementById('printDoc'); if (h) h.remove(); window.removeEventListener('afterprint', cleanup); }
+  window.addEventListener('afterprint', cleanup);
+
+  if (isProc) {
+    var dgWrap = document.createElement('div'); dgWrap.className = 'print-diagram'; host.appendChild(dgWrap);
+    try {
+      var g = AutoLayout.layout({ title: p.title, subtitle: p.subtitle, steps: p.steps, lanes: p.lanes || [] });
+      var h = DiagramRender.render(dgWrap, g, {});
+      h.setZoom(Math.min(1, PW / g.canvas.width, PH / g.canvas.height));
+    } catch (e) { dgWrap.innerHTML = '<div class="mk-empty">Diagram unavailable.</div>'; }
+    var order; try { order = AutoLayout.flowOrder(p); } catch (e) { order = (p.steps || []).slice(); }
+    var detail = order.filter(function (s) { return s.type !== 'start' && s.type !== 'end'; })
+      .map(function (s) { return '<div class="print-step">' + renderDetailCard(s) + '</div>'; }).join('');
+    var steps = document.createElement('div'); steps.className = 'print-steps';
+    steps.innerHTML = '<h2 class="print-h2">Step details</h2>' + (detail || '<p>No steps.</p>');
+    host.appendChild(steps);
+  } else {
+    var body = document.createElement('article'); body.className = 'al-doc print-body';
+    body.innerHTML = p.body || '<p>(No content.)</p>';
+    host.appendChild(body);
+  }
+  /* let images/layout settle, then print */
+  setTimeout(function () { window.print(); }, 250);
+}
+
 /* The logo — top bar renders the 4P's pennant (inlined SVG). Set MARK_DATA_URI
    to a data: URI to use an exact raster export instead. */
 var LOGO_SRC = (typeof MARK_DATA_URI !== 'undefined' && MARK_DATA_URI) ? MARK_DATA_URI : '';
@@ -3633,6 +3713,7 @@ function heroFor(p, flowLabelHtml) {
   var histBtn = edit ? '<button class="mk-btn hb-history" id="histBtn" title="See and restore earlier versions">&#8635; History</button>' : '';
   var delBtn = edit ? '<button class="mk-btn adm-remove" id="delProcBtn" title="Delete (move to Trash)">🗑 Delete</button>' : '';
   var moveBtn = isAdmin() ? '<button class="mk-btn" id="moveProcBtn" title="Move to another pillar">⇄ Move</button>' : '';
+  var pdfBtn = isAdmin() ? '<button class="mk-btn" id="pdfBtn" title="Export this document as a PDF">⭳ Export PDF</button>' : '';
   var editBtn = edit ? '<button class="mk-btn mk-btn--primary hb-editbtn" id="editProcBtn">✎ Edit this ' + KIND_LABEL[kind].toLowerCase() + '</button>' : '';
   var reviewChip = '', approveBtns = '';
   if (p.review === 'pending') {
@@ -3646,7 +3727,7 @@ function heroFor(p, flowLabelHtml) {
   return '<section class="proc-hero"><div class="proc-hero__top">' +
     '<span class="mk-status-pill mk-status-pill--' + p.status + '">' + p.status + '</span>' +
     '<span class="kind-tag kind-tag--' + kind + '">' + KIND_LABEL[kind] + '</span>' + reviewChip +
-    '<div class="mk-grow"></div>' + approveBtns + moveBtn + histBtn + delBtn + editBtn + '</div>' +
+    '<div class="mk-grow"></div>' + approveBtns + pdfBtn + moveBtn + histBtn + delBtn + editBtn + '</div>' +
     '<h1 class="hb-h1">' + esc(p.title) + '</h1>' +
     '<p class="hb-lede">' + esc(p.subtitle || '') + '</p>' +
     (flowLabelHtml || '') +
@@ -3662,6 +3743,7 @@ function wireItemHeader(p) {
   var e = $('editProcBtn'); if (e) e.onclick = function () { openEditor(p.process_id); };
   var db = $('delProcBtn'); if (db) db.onclick = function () { softDeleteItem(p); };
   var mv = $('moveProcBtn'); if (mv) mv.onclick = function () { moveItem(p); };
+  var pb = $('pdfBtn'); if (pb) pb.onclick = function () { exportPDF(p); };
   var hb = $('histBtn'); if (hb) hb.onclick = function () { openHistory(p); };
   var a = $('approveBtn'); if (a) a.onclick = function () {
     var prev = p.review, prb = p.reviewedBy, pra = p.reviewedAt, prc = p.reviewComment;
