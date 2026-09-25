@@ -1714,6 +1714,19 @@ var MARK_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABDgAAAM7CAYAA
           }
           /* both gutters blocked → fall through to the right-channel route below */
         }
+        /* Cross-lane back edge to the row IMMEDIATELY above: hop up through the
+           (box-free) row gap and into the target's near SIDE — no detour to a
+           right channel, so it never leaves a stub sticking out past a box. */
+        if (a.depth - b.depth === 1) {
+          var gyUp = a.y - ROW_GAP * 0.5, midY = b.y + b.h / 2;
+          var targetRight = x2c >= x1c;
+          var edgeX = targetRight ? b.x : b.x + b.w, appX = targetRight ? b.x - 14 : b.x + b.w + 14;
+          if (!hBlocked(gyUp, x1c, appX, skip) && !vBlocked(appX, gyUp, midY, skip)) {
+            var pathA = 'M' + x1c + ',' + a.y + ' L' + x1c + ',' + gyUp + ' L' + appX + ',' + gyUp + ' L' + appX + ',' + midY + ' L' + edgeX + ',' + midY;
+            conns.push({ from: s.id, to: f.e.to, path: pathA, label: f.e.label, labelPos: { x: appX, y: gyUp - 8 }, back: true });
+            return;
+          }
+        }
         var channelX = channelXFor(b.depth, a.depth) + BACK_GAP + (backSeen++) * BACK_GAP;
         var gy1 = a.y - ROW_GAP * 0.5, gy2 = b.y + b.h + ROW_GAP * 0.5;
         /* Cross-lane back arrow: leave the TOP into the gap above, along to the
