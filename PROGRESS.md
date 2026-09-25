@@ -59,16 +59,19 @@ draft → duyệt → publish, phân quyền theo từng mục, và so sánh bi�
 - Chỉ số công (working days): No. PIC = peak (max mỗi bước), ô bước hiện "N doer · M wd",
   header hiện wd/person · No. PIC · tổng wd; ghi chú áp dụng cho process có PIC là EDL/TPM/Intern.
 
-_Các PR đã squash-merge trong đợt này: #50 → #56._
+- **Thông báo Publish → Google Chat + email nhóm: ĐÃ BẬT** (2026-09-25). Đã deploy
+  `mailer.gs` (New version) và chạy `supabase_v9_publish_notify.sql`; `app_config` có
+  đủ 3 key `mailer_url`, `mailer_secret`, `publish_group_email`. File cấu hình lưu tại
+  `deploy/`.
+
+_Các PR đã squash-merge trong đợt này: #50 → #58._
 
 ---
 
 ## 2. Việc cần anh/chị làm (cấu hình phía Google/Supabase — không phải code)
 
-- **Bật thông báo Publish → Google Chat + email nhóm**: deploy lại `mailer.gs`
-  (Deploy → New version) và chạy `supabase_v9_publish_notify.sql`.
-- **Lỗi "email rate limit exceeded"**: làm theo hướng dẫn trong `custom-smtp-setup.md`
-  (cấu hình Custom SMTP cho Supabase Auth) — khi nào tiện thì làm.
+- **Lỗi "email rate limit exceeded"** (email magic-link đăng nhập): làm theo hướng dẫn
+  trong `deploy/custom-smtp-setup.md` (cấu hình Custom SMTP cho Supabase Auth) — khi nào tiện thì làm.
 
 ---
 
