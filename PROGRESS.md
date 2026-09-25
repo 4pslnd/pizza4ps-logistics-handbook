@@ -11,15 +11,18 @@ draft → duyệt → publish, phân quyền theo từng mục, và so sánh bi�
 ## 1. Đã hoàn thành & đang chạy trên `main`
 
 ### Sơ đồ quy trình (flowchart)
-- **Đầu mũi tên hiển thị trên MỌI process** ở mọi mức zoom — giữ kích thước cố định
-  ~11px trên màn hình (trước đây process lớn bị thu nhỏ nên mũi tên gần như biến mất). _(PR #56)_
-- **Định tuyến mũi tên gọn gàng**: ưu tiên đường đi cục bộ, chỉ vòng ra kênh bên phải
-  khi thật sự có box chắn (có kiểm tra vật cản). _(PR #54)_
+- **Đầu mũi tên hiển thị trên MỌI process** và **cân đối theo mức zoom**: co lại theo sơ đồ
+  khi thu nhỏ nhưng có sàn tối thiểu để không bao giờ biến mất (trước đây khi nhỏ thì mũi
+  tên hoặc mất hoặc quá to). _(PR #56, #63)_
+- **Định tuyến mũi tên gọn gàng**: ưu tiên đường đi cục bộ, chỉ vòng ra kênh khi thật sự
+  có box chắn (có kiểm tra vật cản). _(PR #54, #63, #64)_
   - Nhảy tới bước sâu hơn ở cột khác → rớt thẳng xuống cột trống của bước đích
     (quyết định rẽ ngang thì thoát ở đỉnh cạnh rồi rớt xuống).
-  - Vòng lui ngắn (bước làm lại quay về quyết định) → đi lên **gutter bên phải**
-    (dễ nhìn), tự lật sang trái nếu bên phải bị chắn.
-  - Mũi tên lui xa không còn chồng lên nhau.
+  - Nhảy tới cùng cột qua nhiều hàng cũng né box ở giữa (không vẽ xuyên qua).
+  - Vòng lui ngắn → đi lên gọn (cùng lane: gutter bên; khác lane & hàng liền kề: luồn qua
+    khe giữa 2 hàng vào cạnh bên của bước đích), không phóng ra kênh xa.
+  - Kênh cho mũi tên lui/nhảy xa đặt ngay sát bên phải các box trong đúng vùng nó đi qua
+    (không chạy ra tận mép phải), và không chồng lên nhau.
 - **Ô zoom + câu hướng dẫn** ("Click a step to see full details, drag to move") nằm trên
   **thanh phía trên khung flowchart**, canh phải theo cột flowchart — không che chữ lane
   header (PIC), không nằm trên ô step description. Áp dụng cho mọi nơi có flowchart
@@ -71,7 +74,7 @@ draft → duyệt → publish, phân quyền theo từng mục, và so sánh bi�
   rate limit đặt 30 email/giờ → hết lỗi "email rate limit exceeded". Có thể nâng
   rate limit khi cần. Hướng dẫn: `deploy/custom-smtp-setup.md`.
 
-_Các PR đã squash-merge trong đợt này: #50 → #60._
+_Các PR đã squash-merge trong đợt này: #50 → #64._
 
 ---
 
